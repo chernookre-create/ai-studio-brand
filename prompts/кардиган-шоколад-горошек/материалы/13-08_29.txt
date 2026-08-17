@@ -1,0 +1,69 @@
+REFERENCES
+
+Image 1: the model - blonde, straight hair, green-grey eyes, natural skin with visible texture, height 173 cm. This is the model.
+
+Image 2: grey mohair cardigan - fitted bodice, high stand-up collar, a row of six round gold buttons down the front, peplum flaring from the waist, fuzzy brushed mohair with a soft fiber halo, long fitted sleeves.
+
+Image 3: black pencil skirt - narrow, close-fitting through the hip and thigh, high waist, flat front with no pleats, a vertical slit at the front centre, hem ending at mid-calf, matte wool.
+
+Image 5: style reference. Match its street photography approach, flat overcast light, muted film grade, handheld framing and candid feel exactly.
+
+PRESERVE - HIGHEST PRIORITY
+
+Her face stays pixel-identical to Image 1 where visible: same features, same lips, same jawline, natural skin texture with visible pores, no retouching.
+
+Both hands keep five correctly formed separated fingers, anatomically correct. Legs and feet stay fully photographic.
+
+The cardigan keeps its exact fitted silhouette, stand collar, gold button row, peplum flare and fuzzy mohair texture from Image 2.
+
+The skirt keeps its exact cut, length and slit position from Image 3: narrow and fitted, hem at mid-calf, front slit visible. It must not change length, width or shape.
+
+She wears oversized square-frame sunglasses in every frame - they never come off.
+
+HAIR
+
+Blonde hair slicked back flat against the skull with a centre part, glossy gel finish, no volume, no loose strands.
+
+OUTFIT
+
+She wears the grey mohair cardigan buttoned to the collar, the black pencil skirt and black square-toe pumps. On her face, oversized square-frame sunglasses with thick black acetate rims and flat dark lenses, sitting wide across her cheekbones and covering her brows, wider than her face.
+
+No bag, no jewelry, nothing else.
+
+LOCATION
+
+A city street corner on an overcast day. A wide zebra crossing with worn cracked white stripes on grey asphalt. Stone buildings with tall windows, shopfronts, a fire hydrant, a manhole cover. Nothing styled, an ordinary working street. No people in the frame.
+
+STREET GEOGRAPHY
+
+The crossing sits at an open intersection with street on all four sides. The camera moves freely around her through 360 degrees, so each frame shows a different part of the street behind her: a stone building corner, a row of shopfronts, a tram line curving away, traffic lights on a pole, a long empty avenue, a kerb with parked vehicles. The background changes with every camera position, but the light and weather stay identical.
+
+CAMERA:One single photograph, one continuous frame, no panels.High angle looking straight down at the ground from above her.
+
+SCENE: Her legs and the black pumps against the white stripes, mid-stride, one heel lifted, the slit opening. Her shadow beside her.
+
+The narrow skirt stays close to her legs, the front slit opening slightly with each step. Her hair moves with the wind and with her own motion. She is always caught mid-action, a fraction of a second before she settles into position.
+
+LIGHT
+
+Flat overcast daylight, soft and even, no direct sun, no hard shadows. Grey diffused sky acting as a giant softbox. The light comes gently from above and slightly in front, so the mohair fiber halo still reads softly around her shoulders. Everything evenly lit, no glare, no blown highlights, shadows open and full of detail.
+
+GRADE
+
+Editorial street photography on 35mm colour film, muted desaturated palette, cool grey asphalt and stone, warm skin tones, gold buttons as the only warm accent. Soft contrast, lifted blacks, gentle lens softness at the edges, visible film grain, no digital sharpening, no clarity, no HDR.
+
+EXCLUDE
+
+No bare eyes, no visible eyes, no round sunglasses, no thin wire frames, no small lenses, no mirrored lenses.
+
+No mini skirt, no maxi skirt, no A-line skirt, no pleated skirt, no flared skirt, no wide skirt, no trousers, no shorts, no changed hem length, no changed slit position.
+
+No direct sun, no hard shadows, no golden hour, no flash, no studio lighting, no rim light, no high contrast.
+
+No static pose, no held position, no posed stance, no still hair, no neat hair, no hands at rest, no balanced symmetrical body, no robotic stiffness.
+
+No people in the background, no pedestrians, no men in the frame, no bag, no jewelry, no props.
+
+No smile, no posed fashion stance, no centered composition, no digital sharpness, no text, no logos, no changed face, no deformed hands, no extra fingers. no collage, no split frame, no diptych, no multiple panels, no grid, no side-by-side images, no borders, no divider lines, single photograph only
+
+Источник промта: material-12-prompt.txt • SHA-256 ee8a1c930897 

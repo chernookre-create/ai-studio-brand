@@ -36,7 +36,7 @@ def load_slots():
 
 
 SCRIPTS = ['preflight.py', 'check_prompt.py', 'face_id.py', 'qc_frame.py',
-           'scale_fig.py', 'trim_border.py', 'deliver.py', 'readiness.py', 'registry.py']
+           'scale_fig.py', 'trim_border.py', 'deliver.py', 'readiness.py', 'registry.py', 'lineage.py']
 
 fails = []
 
@@ -95,9 +95,12 @@ def main():
     pdir = os.path.join(ROOT, 'prompts')
     names = []
     for base, _, files in os.walk(pdir):
-        # архив — тексты прежних серий: они снимались до нынешних правил и по ним не судятся.
-        # Реестр их читает, предполётная проверка — нет.
-        if os.sep + 'архив' in base + os.sep:
+        # Судим только рабочие промпты — те, что отправим сегодня. Историю не судим:
+        #   архив/    — тексты прежних серий этого изделия;
+        #   материалы/ — разобранные прогоны, снятые до нынешних правил;
+        #   эталоны/   — чужие промпты, от которых метод пошёл.
+        # Реестр и эволюция их читают, предполётная проверка — нет.
+        if any(os.sep + x in base + os.sep for x in ('архив', 'материалы', 'эталоны')):
             continue
         for f in sorted(files):
             if f.endswith('.txt'):

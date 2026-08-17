@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Как метод дошёл до нынешнего вида: prompts/ЭВОЛЮЦИЯ.md из prompts/ИСТОЧНИКИ.json.
+
+    python3 tools/lineage.py
+
+Зачем. Метод не был придуман целиком — он вырос за две недели, и каждый шаг лежит в текстах
+промптов. Полезно видеть не только «как правильно сейчас», но и что именно добавилось на каждом
+шаге: это единственный способ отличить приём, давший результат, от привычки, которую мы носим.
+
+Ничего не выдумывает: считает по самим файлам — длину, число блоков, старший номер референса,
+последнюю фразу SCENE.
+"""
+import json
+import os
+import sys
+from collections import Counter, defaultdict
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC = os.path.join(ROOT, 'prompts', 'ИСТОЧНИКИ.json')
+
+
+def short(s, n=80):
+    if not s:
+        return '—'
+    s = ' '.join(s.split())
+    return s if len(s) <= n else s[:n - 1] + '…'
+
+
+def main():
+    if not os.path.exists(SRC):
+        print('нет prompts/ИСТОЧНИКИ.json — эволюцию собирать не из чего')
+        return 1
+    data = json.load(open(SRC, encoding='utf-8'))
+    by_date = defaultdict(list)
+    for r in data:
+        by_date[r['дата']].append(r)
+
+    out = ['# ЭВОЛЮЦИЯ МЕТОДА — по датам\n',
+           'Собирается `tools/lineage.py` из `prompts/ИСТОЧНИКИ.json`. Руками не правится.\n',
+           f'Всего разобрано текстов: **{len(data)}**, изделий: '
+           f'**{len(set(r["изделие"] for r in data))}**.\n',
+           '| дата | изделие | текстов | знаков (сред.) | блоков | референсов | что нового |',
+           '|---|---|---|---|---|---|---|']
+
+    NEW = {
+        '03.08': 'проза без заголовков; роли через «use reference N»; **цвет числом 5800K с запретом сноса**',
+        '10.08': 'та же проза; «вещь — единственный узор в кадре» вместо запрета фактуры фона',
+        '11.08': 'машинный перевод, заголовки сбиты («Recommendations», «SAVE»); портрет модели одним перечислением — исток канона лица',
+        '13.08': 'одиннадцать блоков; `STREET GEOGRAPHY`; пять референсов; хвост SCENE — фраза настроения',
+        '16.08': 'восемь референсов, добавлена планка целиком; тексты вдвое длиннее; в хвост попадает признак',
+        '17.08': 'девять референсов — **добавлен якорь**; роль якоря разделена; приоритетная строка назначается под план',
+    }
+
+    for date in sorted(by_date, key=lambda d: (d.split('.')[1], d.split('.')[0])):
+        rows = by_date[date]
+        prods = ', '.join(sorted(set(r['изделие'] for r in rows)))
+        avg = sum(r['знаков'] for r in rows) // len(rows)
+        blocks = Counter(r['блоков'] for r in rows).most_common(1)[0][0]
+        refs = max(r['референсов'] for r in rows)
+        out.append(f'| **{date}** | {prods} | {len(rows)} | {avg} | {blocks} | до Image {refs} | '
+                   f'{NEW.get(date, "—")} |')
+
+    out += ['', '## Что в хвосте SCENE по датам\n',
+            'Приоритетная позиция — последняя фраза SCENE. Видно, когда она из фразы настроения',
+            'превратилась в признак.\n',
+            '| дата | самая частая последняя фраза | сколько раз |', '|---|---|---|']
+    for date in sorted(by_date, key=lambda d: (d.split('.')[1], d.split('.')[0])):
+        tails = [r['хвост'] for r in by_date[date] if r['хвост']]
+        if not tails:
+            out.append(f'| {date} | блока SCENE нет | — |')
+            continue
+        top, n = Counter(tails).most_common(1)[0]
+        out.append(f'| {date} | {short(top, 90)} | {n} из {len(tails)} |')
+
+    out += ['', '## Приёмы из эталонов, которых нет в нашем методе\n',
+            'Взяты из чужих промптов, на нашем изделии **не проверены** — это гипотезы, не законы.\n',
+            '1. **Цвет числом с запретом сноса.** `slightly warm white balance around 5800K` плюс',
+            '   `the lemon knit stays luminous, never turning mustard`. Та же формула, что у счётного',
+            '   признака, только применённая к оттенку. У нас цвет не закреплён нигде, и «сведение',
+            '   цвета между сериями» до сих пор числится непроверенным.',
+            '2. **«Вещь — единственный узор в кадре».** Положительная конструкция против конкуренции',
+            '   фактур: `the wall is completely plain, the jacket is the only pattern in the frame`.',
+            '   У нас тот же конфликт на ореховой стене лечится перечислением её дефектов.',
+            '']
+    dst = os.path.join(ROOT, 'prompts', 'ЭВОЛЮЦИЯ.md')
+    open(dst, 'w', encoding='utf-8').write('\n'.join(out))
+    print(f'prompts/ЭВОЛЮЦИЯ.md собран: {len(data)} текстов, {len(by_date)} дат.')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

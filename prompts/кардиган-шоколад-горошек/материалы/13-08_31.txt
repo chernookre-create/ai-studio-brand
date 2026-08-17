@@ -1,0 +1,40 @@
+REFERENCES
+Image 1: the model - blonde, straight hair, green-grey eyes, natural skin with visible texture, height 173 cm. This is the model. Image 5: style reference. Match its street photography approach, flat overcast light, muted film grade, handheld framing and candid feel exactly.
+Image 2: grey mohair cardigan - fitted bodice, high stand-up collar, a row of six round gold buttons down the front, peplum flaring from the waist, fuzzy brushed mohair with a soft fiber halo, long fitted sleeves.
+
+PRESERVE - HIGHEST PRIORITY
+Her face stays pixel-identical to Image 1: same features, same eyes, same lips, natural skin texture with visible pores, no retouching.
+Both hands keep five correctly formed separated fingers, anatomically correct. Legs and feet stay fully photographic.
+The cardigan keeps its exact fitted silhouette, stand collar, gold button row, peplum flare and fuzzy mohair texture from
+Image 2.
+
+HAIR
+Blonde hair slicked back flat against the skull with a centre part, glossy gel finish, no volume, no loose strands.
+
+CAMERA: Medium close from behind at shoulder height, 85mm.
+Camera behind her, the long avenue ahead.
+
+SCENE: The peplum, the button-back silhouette and her shoulders fill the frame. She twists her upper body sharply back toward the lens, hair swinging out and away from her neck, one shoulder dropping.
+Caught mid-action, a fraction of a second before she settles.
+Camera positioned in front of her, the building corner behind.
+Camera positioned to her left, the open avenue behind.
+Camera positioned behind her, the traffic lights and tram line behind.
+Camera positioned to her right, the row of shopfronts behind.LOCATION
+A city street corner on an overcast day. A wide zebra crossing with worn cracked white stripes painted on grey asphalt.
+Behind her, a stone building corner with tall windows and a shopfront, softly out of focus. A fire hydrant and a manhole cover at the edge of the frame. A black sport motorcycle parked at the kerb behind her, slightly out of focus. Nothing styled, an ordinary working street. No people in the frame.
+
+LIGHT
+Flat overcast daylight, soft and even, no direct sun, no hard shadows. Grey diffused sky acting as a giant softbox. The light comes gently from above and slightly in front, so the mohair fiber halo still reads softly around her shoulders.
+Everything evenly lit, no glare, no blown highlights, shadows open and full of detail.
+
+GRADE
+Editorial street photography on 35mm colour film, muted desaturated palette, cool grey asphalt and stone, warm skin tones, gold buttons as the only warm accent. Soft contrast, lifted blacks, gentle lens softness at the edges, visible film grain, no digital sharpening, no clarity, no HDR.
+STREET GEOGRAPHY
+The crossing sits at an open intersection with street on all four sides. The camera can move freely around her through 360 degrees, so each frame shows a different part of the street behind her: a stone building corner with tall windows, an opposite row of shopfronts, a tram line curving away, traffic lights on a pole, a long empty avenue, a kerb with parked vehicles. The background changes with every camera position.
+EXCLUDE
+No direct sun, no hard shadows, no golden hour, no flash, no studio lighting, no rim light, no high contrast.
+No jewelry, no bag no round sunglasses, no thin wire frames, no small lenses, no mirrored lenses, no props.
+No trousers.
+No smile, no posed fashion stance, no symmetrical stance, no centered composition, no digital sharpness, no text, no logos, no changed face, no deformed hands, no extra fingers. no people in the background, no pedestrians, no passersby, no men in the frame no static pose, no held position, no posed stance, no still hair, no neat hair, no hands at rest, no balanced symmetrical body, no robotic stiffness
+
+Источник промта: material-14-prompt.txt • SHA-256 527d7517eebf 
