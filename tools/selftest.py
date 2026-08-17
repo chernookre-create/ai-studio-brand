@@ -36,7 +36,7 @@ def load_slots():
 
 
 SCRIPTS = ['preflight.py', 'check_prompt.py', 'face_id.py', 'qc_frame.py',
-           'scale_fig.py', 'trim_border.py', 'deliver.py', 'readiness.py']
+           'scale_fig.py', 'trim_border.py', 'deliver.py', 'readiness.py', 'registry.py']
 
 fails = []
 
@@ -93,7 +93,16 @@ def main():
 
     print('\n5. Промпты проходят предполётную проверку')
     pdir = os.path.join(ROOT, 'prompts')
-    names = sorted(f for f in os.listdir(pdir) if f.endswith('.txt'))
+    names = []
+    for base, _, files in os.walk(pdir):
+        # архив — тексты прежних серий: они снимались до нынешних правил и по ним не судятся.
+        # Реестр их читает, предполётная проверка — нет.
+        if os.sep + 'архив' in base + os.sep:
+            continue
+        for f in sorted(files):
+            if f.endswith('.txt'):
+                names.append(os.path.relpath(os.path.join(base, f), pdir))
+    names.sort()
     bad = []
     for f in names:
         r = subprocess.run([sys.executable, os.path.join(TOOLS, 'preflight.py'),
