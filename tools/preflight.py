@@ -64,6 +64,25 @@ def find(rel):
     return None
 
 
+
+def detect_mode(text):
+    """Определить тип кадра по самому тексту промпта.
+
+    Ф62, 17.08.2026: проверка без флага измеряет не тот кадр — интерьерный промпт получал девять
+    нарушений про лицо, позу и пуговицы, которых в кадре нет вовсе. Полагаться на память человека
+    в этом месте нельзя: забытый флаг выглядит как настоящий брак и стоит захода. Тип определяется
+    из текста, флаг остаётся как ручное переопределение.
+    """
+    low = text.lower()
+    if 'this is an empty room' in low or 'no shadow of a person' in low:
+        return 'интерьер'
+    if 'studio product photograph' in low or 'seamless white background' in low:
+        return 'пэкшот'
+    if 'start frame' in low or 'end frame' in low or 'motion preset' in low:
+        return 'видео'
+    return 'фото'
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     video = '--видео' in sys.argv
@@ -73,13 +92,38 @@ def main():
     if '--кредиты' in sys.argv:
         cost = sys.argv[sys.argv.index('--кредиты') + 1]
     if not args:
-        print('нужен файл промпта')
+        print()
+        print('preflight.py — предполётная проверка. Нужен файл промпта.')
+        print()
+        print('  python3 tools/preflight.py prompts/base_v4.txt --кредиты 0')
+        print()
+        print('Тип кадра определяется по тексту сам; флаг нужен только чтобы переопределить:')
+        print('  --интерьер   кадр без человека')
+        print('  --пэкшот     предметка на белом')
+        print('  --видео      видео-промпт')
+        print()
+        print('Проверить весь комплект разом:  python3 tools/selftest.py')
+        print()
         return 1
     prompt_path = args[0]
     text = open(prompt_path, encoding='utf-8').read()
 
+    # тип кадра: флаг человека сильнее, но при его отсутствии определяем сами
+    auto = detect_mode(text)
+    if not (video or interior or packshot):
+        video = auto == 'видео'
+        interior = auto == 'интерьер'
+        packshot = auto == 'пэкшот'
+        auto_note = f'определён по тексту: {auto}'
+    else:
+        given = 'видео' if video else 'интерьер' if interior else 'пэкшот'
+        auto_note = f'задан флагом: {given}'
+        if given != auto:
+            auto_note += f' (по тексту похоже на «{auto}» — проверь, тот ли файл)'
+
     print('=' * 78)
     print('ПРЕДПОЛЁТНАЯ ПРОВЕРКА — без неё генерация запрещена')
+    print(f'{prompt_path} · тип кадра {auto_note}')
     print('=' * 78)
 
     # 1. набор референсов
