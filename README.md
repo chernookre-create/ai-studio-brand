@@ -1,6 +1,6 @@
 # ai-studio-brand — рабочий комплект проекта
 
-Приватный репозиторий. Здесь лежит всё, что нужно, чтобы начать съёмку с нуля в новой сессии:
+Публичный репозиторий. Здесь лежит всё, что нужно, чтобы начать съёмку с нуля в новой сессии:
 инструменты, промпты и набор референсов. Готовых кадров здесь нет — они живут у заказчика на
 диске и в архивах сдачи.
 
@@ -8,9 +8,24 @@
 дублируются**: их единственный источник — Project в claude.ai, он подтягивается в каждый новый
 чат сам. Два источника правил — это ровно та болезнь, которую мы лечили 17.08.
 
+## Где что живёт
+
+| | |
+|---|---|
+| GitHub | `github.com/chernookre-create/ai-studio-brand` — отсюда читает каждая новая сессия |
+| Папка на маке | `~/Developer/AI-STUDIO/project/` — рабочая копия, сюда пишет Claude |
+| Отправка | автоматическая, `launchd`-агент `com.aistudio.autosync` раз в 5 минут |
+| Лог отправки | `/tmp/aistudio-autosync.log` |
+
+Руками делать не нужно ничего. Изменения, которые Claude кладёт в папку, уезжают на GitHub сами;
+следующая сессия клонирует уже новую версию.
+
+Папка лежит в `~/Developer`, а не на Рабочем столе, намеренно: macOS не пускает фоновые задачи
+к Desktop и агент падал с `Operation not permitted`.
+
 ## Запуск в новой сессии
 
-    git clone --depth 1 <url> projects/brand
+    git clone --depth 1 https://github.com/chernookre-create/ai-studio-brand.git projects/brand
     pip install insightface onnxruntime rembg --break-system-packages
 
 Проверка: `python3 tools/qc_frame.py --help` и `python3 tools/face_id.py --help` печатают справку
