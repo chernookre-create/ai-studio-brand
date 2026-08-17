@@ -19,17 +19,21 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS = os.path.join(ROOT, 'tools')
 
-SLOTS = [
-    'refs/look_v4/UP1_face.jpg',
-    'refs/look_v4/UP2_packshot.jpg',
-    'refs/look_v4/UP3_button.jpg',
-    'refs/look_v4/UP4_edges.jpg',
-    'refs/look_v4/UP_wall.jpg',
-    'refs/look_v4/UP_skirt.jpg',
-    'refs/look_v4/UP_shoes.jpg',
-    'refs/look_v4/UP8_placket.jpg',
-    'refs/look_v4/UP9_anchor.jpg',
-]
+def load_slots():
+    """Слоты текущей съёмки из refs/CURRENT.json — не зашиты в скрипт именами файлов."""
+    import json
+    path = os.path.join(ROOT, 'refs', 'CURRENT.json')
+    if not os.path.exists(path):
+        return None, 'refs/CURRENT.json не найден'
+    try:
+        d = json.load(open(path, encoding='utf-8'))
+    except Exception as e:
+        return None, f'не читается: {e}'
+    s = d.get('слоты') or {}
+    if len(s) != 9:
+        return None, f'слотов {len(s)}, должно быть 9'
+    return [(k, v) for k, v in sorted(s.items())], d.get('серия', '')
+
 
 SCRIPTS = ['preflight.py', 'check_prompt.py', 'face_id.py', 'qc_frame.py',
            'scale_fig.py', 'trim_border.py', 'deliver.py', 'readiness.py']
@@ -65,11 +69,15 @@ def main():
               'нет — pip install insightface onnxruntime rembg --break-system-packages'
               if r.returncode else '')
 
-    print('\n3. Девять слотов набора')
-    for rel in SLOTS:
-        p = os.path.join(ROOT, rel)
-        ok = os.path.exists(p) and os.path.getsize(p) > 1000
-        check(rel.split('/')[-1], ok, 'нет или пустой' if not ok else '')
+    slots, series = load_slots()
+    print(f'\n3. Девять слотов набора — серия «{series}»' if slots else '\n3. Девять слотов набора')
+    if slots is None:
+        check('refs/CURRENT.json', False, series)
+    else:
+        for role, rel in slots:
+            p = os.path.join(ROOT, rel)
+            ok = os.path.exists(p) and os.path.getsize(p) > 1000
+            check(f'{role} → {rel}', ok, 'нет или пустой' if not ok else '')
 
     print('\n4. Имена файлов не схлопываются по регистру (macOS)')
     seen, clash = {}, []
@@ -107,11 +115,31 @@ def main():
                 dead.append(f'{s}: {marker.strip()}')
     check('мёртвых ссылок нет', not dead, '; '.join(dead))
 
+    print('\n6б. Имена файлов конкретной съёмки не зашиты в скрипты')
+    # маркеры берутся из самого CURRENT.json, а не пишутся литералами: иначе этот тест
+    # пришлось бы править при каждой новой съёмке — то есть он был бы тем же дефектом.
+    marks = set()
+    for _, rel in (slots or []):
+        parts = rel.split('/')
+        marks.add(os.path.splitext(parts[-1])[0])
+        if len(parts) > 2:
+            marks.add(parts[1])
+    hard = []
+    for s in SCRIPTS + ['selftest.py']:
+        lines = [l for l in open(os.path.join(TOOLS, s), encoding='utf-8')
+                 if not l.lstrip().startswith('#')]
+        txt = ''.join(lines)
+        for m in sorted(marks):
+            if m in txt:
+                hard.append(f'{s}: {m}')
+    check('набор описан данными, а не кодом', not hard, '; '.join(hard))
+
     if full:
         print('\n7. Калибровка метрики лица на заведомо одинаковом случае')
-        anchor = os.path.join(ROOT, 'refs', 'ЯКОРЬ_S03.jpg')
-        if not os.path.exists(anchor):
-            check('якорь на месте', False, 'refs/ЯКОРЬ_S03.jpg не найден')
+        anchor_rel = dict(slots).get('9_якорь') if slots else None
+        anchor = os.path.join(ROOT, anchor_rel) if anchor_rel else ''
+        if not anchor or not os.path.exists(anchor):
+            check('якорь на месте', False, f'{anchor_rel or "слот 9"} не найден')
         else:
             r = subprocess.run([sys.executable, os.path.join(TOOLS, 'face_id.py'),
                                 '--эталон', anchor, anchor], capture_output=True, text=True)

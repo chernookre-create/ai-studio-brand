@@ -27,17 +27,27 @@ import time
 # Документы проекта проверить с диска нельзя, поэтому про них печатается напоминание, а
 # ответственность за «прочитано глазами» остаётся на операторе — как и было в инструкциях.
 
-SLOTS = [
-    ('refs/look_v4/UP1_face.jpg', 'слот 1 — лицо'),
-    ('refs/look_v4/UP2_packshot.jpg', 'слот 2 — пэкшот на белом'),
-    ('refs/look_v4/UP3_button.jpg', 'слот 3 — фурнитура крупно'),
-    ('refs/look_v4/UP4_edges.jpg', 'слот 4 — края низа и манжет'),
-    ('refs/look_v4/UP_wall.jpg', 'слот 5 — локация'),
-    ('refs/look_v4/UP_skirt.jpg', 'слот 6 — низ'),
-    ('refs/look_v4/UP_shoes.jpg', 'слот 7 — обувь'),
-    ('refs/look_v4/UP8_placket.jpg', 'слот 8 — застёжка целиком'),
-    ('refs/look_v4/UP9_anchor.jpg', 'слот 9 — якорный кадр'),
-]
+def load_slots():
+    """Девять слотов текущей съёмки из refs/CURRENT.json.
+
+    Правка 17.08.2026 вечером. До неё список слотов был зашит в скрипт именами файлов ореховой
+    комнаты. Это неверно по существу: ореховая стена — значение слота 5 на сегодня, а не свойство
+    метода. Со следующей съёмкой в другом месте проверка требовала бы файл прошлой локации.
+    Теперь набор описан данными: новая съёмка — правка одного JSON, скрипты не трогаются.
+    """
+    import json
+    path = os.path.join(ROOT, 'refs', 'CURRENT.json')
+    if not os.path.exists(path):
+        return None, 'refs/CURRENT.json не найден — набор текущей съёмки не описан'
+    try:
+        d = json.load(open(path, encoding='utf-8'))
+    except Exception as e:
+        return None, f'refs/CURRENT.json не читается: {e}'
+    slots = d.get('слоты') or {}
+    if len(slots) != 9:
+        return None, f'в refs/CURRENT.json описано слотов: {len(slots)}, должно быть 9'
+    return [(v, k.split('_', 1)[1] if '_' in k else k) for k, v in sorted(slots.items())], d.get('серия', '')
+
 
 DOCS_REMINDER = [
     'ЗАКОНЫ — что доказано, что опровергнуто',
@@ -46,7 +56,8 @@ DOCS_REMINDER = [
 
 OPTIONAL = []
 
-ROOTS = ['/home/claude/AI-STUDIO', '/home/claude/projects/brand/..', '/home/claude']
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOTS = [ROOT, '/home/claude/AI-STUDIO', '/home/claude/projects/brand/..', '/home/claude']
 
 
 def find(rel):
@@ -127,9 +138,16 @@ def main():
     print('=' * 78)
 
     # 1. набор референсов
-    print('\n1. Набор референсов — девять слотов:\n')
+    slots, series = load_slots()
+    if slots is None:
+        print(f'\n1. Набор референсов: {series}')
+        print('\n' + '=' * 78)
+        print('ЗАПУСК ЗАПРЕЩЁН — набор не описан')
+        print('=' * 78 + '\n')
+        return 1
+    print(f'\n1. Набор референсов — девять слотов, серия «{series}»:\n')
     missing = 0
-    for rel, why in SLOTS:
+    for rel, why in slots:
         p = find(rel)
         if not p:
             print(f'   ОТСУТСТВУЕТ  {rel} — {why}')
