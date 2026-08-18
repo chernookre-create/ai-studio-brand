@@ -36,7 +36,8 @@ def load_slots():
 
 
 SCRIPTS = ['preflight.py', 'check_prompt.py', 'face_id.py', 'qc_frame.py',
-           'scale_fig.py', 'trim_border.py', 'deliver.py', 'readiness.py', 'registry.py', 'lineage.py']
+           'scale_fig.py', 'trim_border.py', 'deliver.py', 'readiness.py', 'registry.py',
+           'lineage.py', 'rules_selftest.py']
 
 fails = []
 
@@ -54,7 +55,11 @@ def main():
 
     # Число файлов печатается, а не записывается в документы: документ с зашитым числом
     # устаревает при первом же удалении файла и начинает врать (Ф78).
-    n = sum(len(fs) for base, _, fs in os.walk(ROOT) if '.git' not in base)
+    # __pycache__ считать нельзя: он появляется от самого запуска, и число файлов
+    # прыгает 167 → 169 между двумя одинаковыми прогонами в свежем клоне (Ф146).
+    ПРОПУСК = ('.git', '__pycache__', '.pytest_cache')
+    n = sum(len(fs) for base, _, fs in os.walk(ROOT)
+            if not any(f'{os.sep}{d}' in base or base.endswith(d) for d in ПРОПУСК))
     print(f'\nФайлов в комплекте: {n}')
 
     print('\n1. Скрипты на месте и синтаксически целы')
@@ -124,6 +129,16 @@ def main():
             bad.append(f)
     check(f'{len(names) - len(bad)} из {len(names)} зелёные', not bad, ', '.join(bad))
 
+    print('\n5б. Каждое правило check_prompt умеет покраснеть')
+    # Счёт 18.08: из 53 правил четырёх классов 35 не сработали ни разу за всю историю.
+    # Правило, которое ни разу не падало, неотличимо от правила, которое упасть не может —
+    # два таких уже нашлись (Ф119, Ф120), и этот прогон нашёл ещё четыре (Ф149, Ф150).
+    r = subprocess.run([sys.executable, os.path.join(TOOLS, 'rules_selftest.py')],
+                       capture_output=True, text=True)
+    строки = [l for l in r.stdout.strip().splitlines() if l.strip()]
+    check(строки[0] if строки else 'rules_selftest.py', r.returncode == 0,
+          '; '.join(l.strip() for l in строки if 'СБОЙ' in l)[:300])
+
     print('\n6. Скрипты не ссылаются на несуществующие файлы')
     # Проверяем не по списку запрещённых слов, а по факту: каждый упомянутый в коде путь
     # к .md/.json должен где-то в комплекте существовать. Прежний список маркеров
@@ -143,9 +158,33 @@ def main():
     dead = []
     # meta.json создаётся deliver.py в момент сдачи — это цель записи, а не ссылка.
     RUNTIME = {'meta.json'}
+    def без_текста(код):
+        """Убрать комментарии и строки документации: пример вызова в docstring
+        (`face_id.py --эталон ref.jpg кадр1.png`) — это не ссылка на файл, а образец
+        команды. Первая редакция расширенной проверки поймала семь таких и была неправа."""
+        import io, tokenize as _tk
+        куски, prev = [], None
+        try:
+            for t in _tk.generate_tokens(io.StringIO(код).readline):
+                if t.type == _tk.COMMENT:
+                    continue
+                if t.type == _tk.STRING and (prev is None or prev in (_tk.INDENT, _tk.NEWLINE, _tk.NL)):
+                    continue          # docstring на своей строке
+                куски.append(t.string)
+                if t.type not in (_tk.NL, _tk.NEWLINE, _tk.INDENT, _tk.DEDENT):
+                    prev = t.type
+                else:
+                    prev = t.type
+        except Exception:
+            return код
+        return '\n'.join(куски)
+
     for sc in SCRIPTS:
-        txt = open(os.path.join(TOOLS, sc), encoding='utf-8').read()
-        for m in _re.finditer(r'[A-Za-zА-Яа-я0-9_./-]+\.(?:md|json)(?![A-Za-z0-9])', txt):
+        txt = без_текста(open(os.path.join(TOOLS, sc), encoding='utf-8').read())
+        # Картинки тоже: ссылка на несуществующий .jpg ломает счёт ровно так же, как
+        # ссылка на несуществующий .json, а проверка её не видела (Ф147).
+        for m in _re.finditer(
+                r'[A-Za-zА-Яа-я0-9_./-]+\.(?:md|json|jpg|jpeg|png|webp)(?![A-Za-z0-9])', txt):
             ref = m.group(0)
             # Путь, собранный из f-строки (`f'{out}/README.md'`), — это цель записи, а не
             # ссылка: проверять нечего, каталог создаётся в момент сдачи.
@@ -192,12 +231,19 @@ def main():
                 hard.append(f'{s}: {m}')
     check('набор описан данными, а не кодом', not hard, '; '.join(hard))
 
-    print('\n6в. База промптов: нет побайтных дублей')
+    print('\n6в. Комплект: нет побайтных дублей (тексты и картинки)')
+    # Первая редакция смотрела только prompts/*.txt, а дубли картинок в refs/ — 24 файла
+    # без единой ссылки и пара MIRA_* — так и лежали. Дубль картинки дороже дубля текста:
+    # он занимает слот в наборе и уводит модель (Ф148).
     import hashlib
     seen_hash, dupes = {}, []
-    for base, _, files in os.walk(os.path.join(ROOT, 'prompts')):
+    ДУБЛИ_ГДЕ = [os.path.join(ROOT, 'prompts'), os.path.join(ROOT, 'refs')]
+    for корень in ДУБЛИ_ГДЕ:
+      for base, _, files in os.walk(корень):
+        if '__pycache__' in base or '_снято_с_учёта' in base:
+            continue
         for f in sorted(files):
-            if not f.endswith('.txt'):
+            if not f.lower().endswith(('.txt', '.jpg', '.jpeg', '.png', '.webp')):
                 continue
             full_p = os.path.join(base, f)
             h = hashlib.md5(open(full_p, 'rb').read()).hexdigest()
@@ -256,6 +302,37 @@ def main():
 
         both = sorted(set(st.get('готово', [])) & set(st.get('нет', [])))
         check('пункт не стоит одновременно в готово и в нет', not both, ', '.join(both))
+
+    print('\n6ж. Поле «лицо» в results/*.json: либо число, либо причина из словаря')
+    # За сутки одно поле обзавелось семью написаниями одного и того же: «—», «не мерено»,
+    # «не мерено, лица нет», «нет в кадре», «со спины», «профиль». Свободный текст в поле,
+    # по которому потом считают, — это метрика, которой нет (F7). Словарь закрыт, восьмого
+    # написания не будет: проверка падает на любом значении вне списка.
+    import glob as _g, json as _j3, re as _re3
+    ПРИЧИНЫ = {'не мерено', 'со спины', 'профиль', 'лица нет в кадре'}
+    ЧИСЛО = _re3.compile(r'^\d\.\d{3}$')
+    res = sorted(_g.glob(os.path.join(ROOT, 'results', '*.json')))
+    if not res:
+        check('results/*.json', False, 'файлов нет')
+    else:
+        плохие, всего = [], 0
+        for f in res:
+            try:
+                d = _j3.load(open(f, encoding='utf-8'))
+            except Exception as e:
+                плохие.append(f'{os.path.basename(f)}: не читается ({e})')
+                continue
+            for k, it in d.items():
+                if not isinstance(it, dict) or 'лицо' not in it:
+                    continue
+                всего += 1
+                v = it['лицо']
+                # Тип тоже часть словаря: число float молча пройдёт по виду, но 0.6
+                # сериализуется как «0.6», а 0.60 — как «0.6», и три знака теряются.
+                if not isinstance(v, str) or (not ЧИСЛО.match(v) and v not in ПРИЧИНЫ):
+                    плохие.append(f'{os.path.basename(f)}:{k} = {v!r}')
+        check(f'{всего - len(плохие)} из {всего} записей по словарю', not плохие,
+              '; '.join(плохие[:6]) + (' …' if len(плохие) > 6 else ''))
 
     if full:
         print('\n7. Калибровка метрики лица на заведомо одинаковом случае')
