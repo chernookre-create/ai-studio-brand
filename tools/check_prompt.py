@@ -10,7 +10,7 @@
     python3 tools/check_prompt.py prompt.txt --видео
     cat prompt.txt | python3 tools/check_prompt.py -
 
-Код возврата 1, если есть хоть одно нарушение. Правила пронумерованы так же, как в RULES.md.
+Код возврата 1, если есть хоть одно нарушение. Правила пронумерованы так же, как в «ЗАКОНАХ» в Project claude.ai.
 """
 import re
 import sys

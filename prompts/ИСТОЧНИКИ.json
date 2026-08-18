@@ -8,18 +8,10 @@
   "блоков": 11,
   "референсов": 9,
   "хвост": "Those three buttons on the placket are the only buttons on the whole garment: there are no buttons on the sleeves, no buttons at the cuffs, no button at the neck, no decorative buttons anywhere else.",
-  "фото": true
- },
- {
-  "№": "02",
-  "изделие": "кардиган-шоколад-горошек",
-  "дата": "17.08",
-  "чей": "наш",
-  "знаков": 10364,
-  "блоков": 11,
-  "референсов": 9,
-  "хвост": "Those three buttons on the placket are the only buttons on the whole garment: there are no buttons on the sleeves, no buttons at the cuffs, no button at the neck, no decorative buttons anywhere else.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/17-08_01.txt",
+  "кадров": 2,
+  "примечание": "по этому тексту снято два кадра: 17-08_01.jpg и 17-08_01b.jpg; второй файл текста был побайтным дублем и снят с учёта (Ф85)"
  },
  {
   "№": "03",
@@ -30,7 +22,8 @@
   "блоков": 11,
   "референсов": 9,
   "хвост": "The bottom edge of the photograph cuts across the top of the pleated skirt at the level of her hips; her thighs, her knees and her feet are outside the picture and not visible at all; the cardigan alone fills more than half of the picture area.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/17-08_03.txt"
  },
  {
   "№": "04",
@@ -41,7 +34,8 @@
   "блоков": 11,
   "референсов": 9,
   "хвост": "The bottom edge of the photograph cuts across the top of the pleated skirt at the level of her hips; her thighs, her knees and her feet are outside the picture and not visible at all; the cardigan alone fills more than half of the picture area.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/17-08_04.txt"
  },
  {
   "№": "05",
@@ -52,7 +46,8 @@
   "блоков": 11,
   "референсов": 9,
   "хвост": "The bottom edge of the photograph cuts across the top of the pleated skirt at the level of her hips; her thighs, her knees and her feet are outside the picture and not visible at all; the cardigan alone fills more than half of the picture area.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/17-08_05.txt"
  },
  {
   "№": "06",
@@ -63,7 +58,8 @@
   "блоков": 11,
   "референсов": 9,
   "хвост": "Last of all, the crop: the bottom edge of the photograph cuts across her calves below the knee and her feet are not in the picture.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/17-08_06.txt"
  },
  {
   "№": "07",
@@ -74,7 +70,8 @@
   "блоков": 11,
   "референсов": 9,
   "хвост": "The two-tone ballet flats of Image 7 are on her feet, never barefoot.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/17-08_07.txt"
  },
  {
   "№": "08",
@@ -85,7 +82,8 @@
   "блоков": 11,
   "референсов": 9,
   "хвост": "Those three buttons on the placket are the only buttons on the whole garment: there are no buttons on the sleeves, no buttons at the cuffs, no button at the neck, no decorative buttons anywhere else.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/17-08_08.txt"
  },
  {
   "№": "09",
@@ -96,7 +94,8 @@
   "блоков": 11,
   "референсов": 9,
   "хвост": "Never a paler woman, never a narrower face, never a different model, however small her face is in this picture.",
-  "фото": false
+  "фото": false,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/17-08_09.txt"
  },
  {
   "№": "10",
@@ -107,7 +106,8 @@
   "блоков": 11,
   "референсов": 9,
   "хвост": "There are no raised panels, no moulded frames, no rectangles or borders outlined on the wall, no wainscot, no black gap between boards.",
-  "фото": false
+  "фото": false,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/17-08_10.txt"
  },
  {
   "№": "11",
@@ -118,7 +118,8 @@
   "блоков": 11,
   "референсов": 8,
   "хвост": "Exactly three gold buttons as in Image 8 sit on the upper half of the placket, every one of them done up through its buttonhole, the two front edges touching each other in a single closed line from the point of the V down to the third button, no skin and no cream fabric showing between them, and below that third button the placket runs bare to the hem with no fourth button anywhere.",
-  "фото": false
+  "фото": false,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/17-08_11.txt"
  },
  {
   "№": "12",
@@ -129,7 +130,8 @@
   "блоков": 9,
   "референсов": 5,
   "хвост": "On her face, oversized square-frame sunglasses with thick black acetate rims and flat dark lenses, sitting wide across her cheekbones and covering her brows — a bold nineties silhouette, wider than her face.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/мохер-серый-баска/эталоны/13-08_12.txt"
  },
  {
   "№": "13",
@@ -140,7 +142,8 @@
   "блоков": 0,
   "референсов": 2,
   "хвост": null,
-  "фото": true
+  "фото": true,
+  "файл": "prompts/мохер-серый-баска/эталоны/11-08_13.txt"
  },
  {
   "№": "14",
@@ -151,7 +154,8 @@
   "блоков": 0,
   "референсов": 0,
   "хвост": null,
-  "фото": true
+  "фото": true,
+  "файл": "prompts/поло-лимонное/эталоны/03-08_14.txt"
  },
  {
   "№": "15",
@@ -162,7 +166,8 @@
   "блоков": 0,
   "референсов": 0,
   "хвост": null,
-  "фото": true
+  "фото": true,
+  "файл": "prompts/поло-лимонное/эталоны/03-08_15.txt"
  },
  {
   "№": "16",
@@ -173,7 +178,8 @@
   "блоков": 0,
   "референсов": 0,
   "хвост": null,
-  "фото": true
+  "фото": true,
+  "файл": "prompts/портрет-MIRA/эталоны/11-08_16.txt"
  },
  {
   "№": "17",
@@ -184,7 +190,8 @@
   "блоков": 0,
   "референсов": 0,
   "хвост": null,
-  "фото": true
+  "фото": true,
+  "файл": "prompts/куртка-стёганая/эталоны/10-08_17.txt"
  },
  {
   "№": "18",
@@ -195,7 +202,8 @@
   "блоков": 11,
   "референсов": 8,
   "хвост": "Exactly three gold buttons as in Image 8 sit on the upper half of the placket, every one of them done up through its buttonhole, the two front edges touching each other in a single closed line from the point of the V down to the third button, no skin and no cream fabric showing between them, and below that third button the placket runs bare to the hem with no fourth button anywhere.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/16-08_18.txt"
  },
  {
   "№": "19",
@@ -206,7 +214,8 @@
   "блоков": 11,
   "референсов": 8,
   "хвост": "She is never barefoot and never in any other shoe.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/16-08_19.txt"
  },
  {
   "№": "20",
@@ -217,7 +226,8 @@
   "блоков": 11,
   "референсов": 8,
   "хвост": "She is never barefoot and never in any other shoe.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/16-08_20.txt"
  },
  {
   "№": "21",
@@ -228,7 +238,8 @@
   "блоков": 11,
   "референсов": 8,
   "хвост": "The placket carries exactly the three gold buttons of Image 8, evenly spaced on its upper half, and there is no fourth button and no fifth button anywhere on it.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/16-08_21.txt"
  },
  {
   "№": "22",
@@ -239,7 +250,8 @@
   "блоков": 11,
   "референсов": 8,
   "хвост": "The picture fills the whole file edge to edge: no black border, no dark frame, no white margin around the photograph.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/16-08_22.txt"
  },
  {
   "№": "23",
@@ -250,7 +262,8 @@
   "блоков": 11,
   "референсов": 8,
   "хвост": "The picture fills the whole file edge to edge: no black border, no dark frame, no white margin around the photograph.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/16-08_23.txt"
  },
  {
   "№": "24",
@@ -261,7 +274,8 @@
   "блоков": 11,
   "референсов": 8,
   "хвост": "The picture fills the whole file edge to edge: no black border, no dark frame, no white margin around the photograph.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/16-08_24.txt"
  },
  {
   "№": "25",
@@ -272,7 +286,8 @@
   "блоков": 11,
   "референсов": 8,
   "хвост": "The picture fills the whole file edge to edge: no black border, no dark frame, no white margin around the photograph.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/16-08_25.txt"
  },
  {
   "№": "26",
@@ -283,7 +298,8 @@
   "блоков": 11,
   "референсов": 5,
   "хвост": "She is always caught mid-action, a fraction of a second before she settles into position.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/13-08_26.txt"
  },
  {
   "№": "27",
@@ -294,7 +310,8 @@
   "блоков": 11,
   "референсов": 5,
   "хвост": "She is always caught mid-action, a fraction of a second before she settles into position.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/13-08_27.txt"
  },
  {
   "№": "28",
@@ -305,7 +322,8 @@
   "блоков": 11,
   "референсов": 5,
   "хвост": "She is always caught mid-action, a fraction of a second before she settles into position.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/13-08_28.txt"
  },
  {
   "№": "29",
@@ -316,7 +334,8 @@
   "блоков": 11,
   "референсов": 5,
   "хвост": "She is always caught mid-action, a fraction of a second before she settles into position.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/13-08_29.txt"
  },
  {
   "№": "30",
@@ -327,7 +346,8 @@
   "блоков": 11,
   "референсов": 5,
   "хвост": "She is always caught mid-action, a fraction of a second before she settles into position.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/13-08_30.txt"
  },
  {
   "№": "31",
@@ -338,7 +358,8 @@
   "блоков": 9,
   "референсов": 5,
   "хвост": "No people in the frame.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/13-08_31.txt"
  },
  {
   "№": "32",
@@ -349,6 +370,7 @@
   "блоков": 9,
   "референсов": 5,
   "хвост": "No people in the frame.",
-  "фото": true
+  "фото": true,
+  "файл": "prompts/кардиган-шоколад-горошек/материалы/13-08_32.txt"
  }
 ]

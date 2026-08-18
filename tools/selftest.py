@@ -120,17 +120,31 @@ def main():
             bad.append(f)
     check(f'{len(names) - len(bad)} из {len(names)} зелёные', not bad, ', '.join(bad))
 
-    print('\n6. Скрипты не ссылаются на удалённые документы')
+    print('\n6. Скрипты не ссылаются на несуществующие файлы')
+    # Проверяем не по списку запрещённых слов, а по факту: каждый упомянутый в коде путь
+    # к .md/.json должен где-то в комплекте существовать. Прежний список маркеров
+    # ("'RULES ") требовал кавычку с пробелом и пропускал ссылку «как в RULES.md»
+    # в комментарии, а маркер '00_readiness/' наоборот ругался на живой файл (Ф86).
+    import re as _re
+    known = set()
+    for base, _, files in os.walk(ROOT):
+        if '.git' in base:
+            continue
+        for f in files:
+            known.add(f)
     dead = []
-    for s in SCRIPTS:
-        # комментарии не считаются: в них эти пути упоминаются как история правки
-        lines = [l for l in open(os.path.join(TOOLS, s), encoding='utf-8')
-                 if not l.lstrip().startswith('#')]
-        txt = ''.join(lines)
-        for marker in ("'RULES ", "'METHOD §", '00_RULES/', '03_PROJECTS/', '04_poses/'):
-            if marker in txt:
-                dead.append(f'{s}: {marker.strip()}')
-    check('мёртвых ссылок нет', not dead, '; '.join(dead))
+    # meta.json создаётся deliver.py в момент сдачи — это цель записи, а не ссылка.
+    RUNTIME = {'meta.json'}
+    for sc in SCRIPTS:
+        txt = open(os.path.join(TOOLS, sc), encoding='utf-8').read()
+        for m in _re.finditer(r'[A-Za-zА-Яа-я0-9_./-]+\.(?:md|json)(?![A-Za-z0-9])', txt):
+            ref = m.group(0)
+            if (os.path.exists(os.path.join(ROOT, ref))
+                    or os.path.basename(ref) in known
+                    or os.path.basename(ref) in RUNTIME):
+                continue
+            dead.append(f'{sc}: {ref}')
+    check('мёртвых ссылок нет', not dead, '; '.join(sorted(set(dead))))
 
     print('\n6б. Имена файлов конкретной съёмки не зашиты в скрипты')
     # маркеры берутся из самого CURRENT.json, а не пишутся литералами: иначе этот тест
@@ -150,6 +164,33 @@ def main():
             if m in txt:
                 hard.append(f'{s}: {m}')
     check('набор описан данными, а не кодом', not hard, '; '.join(hard))
+
+    print('\n6в. База промптов: нет побайтных дублей')
+    import hashlib
+    seen_hash, dupes = {}, []
+    for base, _, files in os.walk(os.path.join(ROOT, 'prompts')):
+        for f in sorted(files):
+            if not f.endswith('.txt'):
+                continue
+            full_p = os.path.join(base, f)
+            h = hashlib.md5(open(full_p, 'rb').read()).hexdigest()
+            rel = os.path.relpath(full_p, ROOT)
+            if h in seen_hash:
+                dupes.append(f'{seen_hash[h]} ↔ {rel}')
+            seen_hash[h] = rel
+    check('дублей текста нет', not dupes, '; '.join(dupes))
+
+    print('\n6г. ИСТОЧНИКИ.json ссылается на существующие файлы')
+    src = os.path.join(ROOT, 'prompts', 'ИСТОЧНИКИ.json')
+    if not os.path.exists(src):
+        check('prompts/ИСТОЧНИКИ.json', False, 'файла нет')
+    else:
+        import json as _json
+        recs = _json.load(open(src, encoding='utf-8'))
+        broken = [r.get('№', '?') for r in recs
+                  if not r.get('файл') or not os.path.exists(os.path.join(ROOT, r['файл']))]
+        check(f'{len(recs) - len(broken)} из {len(recs)} записей с живым файлом',
+              not broken, 'без файла: ' + ', '.join(broken) if broken else '')
 
     if full:
         print('\n7. Калибровка метрики лица на заведомо одинаковом случае')
