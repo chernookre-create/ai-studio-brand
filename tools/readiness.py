@@ -113,10 +113,17 @@ def main():
         return
     print("Не закрыто — и что из-за этого выйдет:\n")
     for i, w, t, r in sorted(missing, key=lambda x: -x[1]):
-        print(f"  [{i}] −{w}%  {t}")
+        print(f"  [{i}] вес {w} из {total}  {t}")
         print(f"        риск: {r}")
-    print(f"\nЕсли снимать как есть, дороже всего обойдётся: "
-          f"{max(missing, key=lambda x: x[1])[0]}.\n")
+    # max() при равных весах молча брал первого по списку и печатал одного «самого дорогого»
+    # там, где их трое (Ф124). Ничья называется ничьёй.
+    top = max(w for _, w, _, _ in missing)
+    worst = [i for i, w, _, _ in missing if w == top]
+    if len(worst) == 1:
+        print(f"\nЕсли снимать как есть, дороже всего обойдётся: {worst[0]} (вес {top}).\n")
+    else:
+        print(f"\nСамые дорогие незакрытые пункты, вес {top} у каждого: "
+              f"{', '.join(worst)}.\n")
 
 
 if __name__ == '__main__':

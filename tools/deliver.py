@@ -22,6 +22,22 @@ F = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
 FB = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 
 
+# Данные конкретной съёмки — из refs/CURRENT.json, а не из кода: эталон узора и разрешение
+# оригинала были зашиты здесь литералами и переезжали бы вместе со сменой съёмки молча (Ф125).
+def _текущее(ключ, по_умолчанию):
+    import json as _j
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                     'refs', 'CURRENT.json')
+    try:
+        return _j.load(open(p, encoding='utf-8')).get(ключ, по_умолчанию)
+    except Exception:
+        return по_умолчанию
+
+
+ЭТАЛОН = _текущее('эталон_узора', 'не задан')
+РАЗРЕШЕНИЕ = _текущее('разрешение_оригинала', 'не задано')
+
+
 def load_meta(src):
     """meta.json рядом с кадрами: {файл: {название, лицо, узор, счёт, вердикт}}"""
     p = os.path.join(src, 'meta.json')
@@ -102,8 +118,8 @@ def build(run, src):
     with open(f'{out}/README.md', 'w', encoding='utf-8') as f:
         f.write(f'# Прогон {run}\n\n')
         f.write(f'Кадров в прогоне: {len(rows)}. Прошли счёт: {len(ok)}.\n\n')
-        f.write('Норма: лицо ArcFace ≥0.45 (цель ≥0.60), узор ±12% от эталона E05.\n')
-        f.write('Оригиналы PNG 3584×4800 остаются в проекте, здесь JPEG качества 95.\n\n')
+        f.write(f'Норма: лицо ArcFace ≥0.45 (цель ≥0.60), узор ±12% от эталона {ЭТАЛОН}.\n')
+        f.write(f'Оригиналы PNG {РАЗРЕШЕНИЕ} остаются в проекте, здесь JPEG качества 95.\n\n')
         f.write('| Код | Кадр | Лицо | Узор | Счёт глазами | Вердикт |\n|---|---|---|---|---|---|\n')
         for c, n, lf, uz, sc, mk, _ in rows:
             f.write(f'| {c} | {n} | {lf} | {uz} | {sc} | **{mk}** |\n')

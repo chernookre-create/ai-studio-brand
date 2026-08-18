@@ -126,6 +126,10 @@ def main():
     # ("'RULES ") требовал кавычку с пробелом и пропускал ссылку «как в RULES.md»
     # в комментарии, а маркер '00_readiness/' наоборот ругался на живой файл (Ф86).
     import re as _re
+    # Прежняя версия считала ссылку живой, если файл с таким ИМЕНЕМ есть где угодно в
+    # комплекте. Из-за этого проходила ссылка вида 00_RULES/старое/CURRENT.json — имя
+    # существует, путь нет (Ф122). Теперь сверяется путь; имя допускается только тогда,
+    # когда в ссылке пути нет вовсе (`РЕЕСТР.md`, `state.json`).
     known = set()
     for base, _, files in os.walk(ROOT):
         if '.git' in base:
@@ -139,8 +143,13 @@ def main():
         txt = open(os.path.join(TOOLS, sc), encoding='utf-8').read()
         for m in _re.finditer(r'[A-Za-zА-Яа-я0-9_./-]+\.(?:md|json)(?![A-Za-z0-9])', txt):
             ref = m.group(0)
+            # Путь, собранный из f-строки (`f'{out}/README.md'`), — это цель записи, а не
+            # ссылка: проверять нечего, каталог создаётся в момент сдачи.
+            if m.start() and txt[m.start() - 1] == '}':
+                continue
+            bare = '/' not in ref
             if (os.path.exists(os.path.join(ROOT, ref))
-                    or os.path.basename(ref) in known
+                    or (bare and ref in known)
                     or os.path.basename(ref) in RUNTIME):
                 continue
             dead.append(f'{sc}: {ref}')
@@ -155,6 +164,17 @@ def main():
         marks.add(os.path.splitext(parts[-1])[0])
         if len(parts) > 2:
             marks.add(parts[1])
+    # Не только имена слотов: любое скалярное значение съёмки из CURRENT.json (эталон узора,
+    # разрешение оригинала) не должно встречаться в коде литералом — иначе оно переедет в
+    # следующую съёмку молча, как это было с «E05» в deliver.py (Ф125).
+    try:
+        import json as _j3
+        _cur = _j3.load(open(os.path.join(ROOT, 'refs', 'CURRENT.json'), encoding='utf-8'))
+        for k, v in _cur.items():
+            if k != 'слоты' and isinstance(v, str) and len(v) >= 3 and '—' not in v:
+                marks.add(v)
+    except Exception:
+        pass
     hard = []
     for s in SCRIPTS + ['selftest.py']:
         lines = [l for l in open(os.path.join(TOOLS, s), encoding='utf-8')
@@ -201,7 +221,8 @@ def main():
     print('\n6е. Опросник готовности: состояние совпадает со списком пунктов')
     import re as _re2
     rd = open(os.path.join(TOOLS, 'readiness.py'), encoding='utf-8').read()
-    ids = set(_re2.findall(r'\("([A-Z]\d)",', rd))
+    # Один разряд не годится: в опроснике уже есть A10, а в «Позах» коды доходят до A12 (Ф123).
+    ids = set(_re2.findall(r'\("([A-Z]\d{1,2})",', rd))
     st_p = os.path.join(ROOT, '00_readiness', 'state.json')
     if not os.path.exists(st_p):
         check('00_readiness/state.json', False, 'файла нет')

@@ -57,19 +57,18 @@ DOCS_REMINDER = [
 OPTIONAL = []
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ROOTS = [ROOT, '/home/claude/AI-STUDIO', '/home/claude/projects/brand/..', '/home/claude']
 
-
+# Ищем только внутри комплекта. Прежние запасные корни были абсолютными путями вида
+# /home/claude/... — в сессии с другим домашним каталогом весь резервный поиск был мёртв
+# и молча возвращал None, а документ уже объявлял такие пути несуществующими (Ф106, Ф121).
 def find(rel):
-    for r in ROOTS:
-        p = os.path.join(r, rel)
-        if os.path.exists(p):
-            return p
+    p = os.path.join(ROOT, rel)
+    if os.path.exists(p):
+        return p
     tail = rel.split('/')[-1]
-    for base, _, files in os.walk('/home/claude/projects/brand'):
-        if tail in files:
-            return os.path.join(base, tail)
-    for base, _, files in os.walk('/home/claude/work/skills'):
+    for base, _, files in os.walk(ROOT):
+        if '.git' in base:
+            continue
         if tail in files:
             return os.path.join(base, tail)
     return None
