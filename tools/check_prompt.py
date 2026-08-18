@@ -39,8 +39,17 @@ def scene_tail(text):
 
 
 # Признаки, ради которых приоритетная позиция вообще существует: то, что ломается на кадре.
-ЛОМКОЕ = (r'button|placket|hem|cuff|edge of the|edges|shoe|flat|wall|plank|panelling|knit|'
-          r'dot|neckline|bun|hair|crop|waist|skirt|length|sleeve|fasten')
+# Границы слова обязательны: без них `flat` ловился внутри `flattering`, и фраза настроения
+# проходила как приоритетная строка (Ф131). Причёски здесь нет намеренно — по B1 она стоит
+# ПРЕДпоследней, а последняя строка отдаётся признаку изделия или кадра (правило P3).
+ЛОМКОЕ = (r'\b(buttons?|placket|hems?|cuffs?|edges?|shoes?|flats?|wall|planks?|panelling|'
+          r'knit|dots?|neckline|crop|waistband|sleeves?|fastening|length)\b')
+# Приоритетная строка — это ограничение признака, а не упоминание о нём: «no fourth button»,
+# «never a round crew», «the dots run right to the edge». Фраза настроения признак называет,
+# но ничего не запрещает и ничего не удерживает.
+ОГРАНИЧЕНИЕ = r'\b(no|never|only|exactly|not|nothing|none)\b'
+# Причёска в хвосте — частая ошибка: по B1 её место предпоследнее.
+ПРИЧЁСКА = r'\b(hair|hairs|knot|bun|parting|fringe|ponytail)\b'
 # Дефекты постобработки: лечатся скриптом после кадра, в хвосте им не место (закон B3).
 ПОСТОБРАБОТКА = r'border|watermark|subtitle|resolution|aspect ratio|letterbox|whole file|file edge'
 
@@ -92,13 +101,19 @@ CHECKS_PHOTO = [
         r'|\b(identical|unchanged|constant|the same)\b[^.]{0,120}\b(light|lighting|weather)\b', t, re.I)),
      'не сказано, что свет и погода одинаковы при смене ракурса — серия развалится по свету',
      'скил reference-shoot · серия'),
-    ('P1', lambda t: bool(re.search(ЛОМКОЕ, scene_tail(t), re.I)),
-     'последняя фраза SCENE не называет ломкий признак — сильнейшая позиция кадра потрачена впустую',
+    ('P1', lambda t: bool(re.search(ЛОМКОЕ, scene_tail(t), re.I))
+     and bool(re.search(ОГРАНИЧЕНИЕ, scene_tail(t), re.I)),
+     'последняя фраза SCENE не удерживает ломкий признак: нужен и сам признак, и ограничение '
+     '(«no fourth button», «never a round crew», «the dots run to the very edge»)',
      'ЗАКОНЫ · B1 приоритетная строка'),
     ('P2', lambda t: not re.search(ПОСТОБРАБОТКА, scene_tail(t), re.I),
      'в последней фразе SCENE стоит дефект постобработки (кайма, водяной знак, разрешение) — '
      'движок его не исполняет, это работа trim_border.py',
      'ЗАКОНЫ · B3 в хвост только исполнимое'),
+    ('P3', lambda t: not re.search(ПРИЧЁСКА, scene_tail(t), re.I),
+     'причёска стоит последней строкой SCENE — по B1 её место предпоследнее, последняя отдаётся '
+     'признаку изделия или кадра',
+     'ЗАКОНЫ · B1 порядок хвоста'),
     ('G1', lambda t: bool(re.search(r'film grain|35mm colour film|no HDR', t, re.I)),
      'нет грейда плёнкой — получится цифровая пластмасса', 'скил reference-shoot · GRADE'),
     # smooth про ПОЛОТНО — запрещено; smooth про пуговицу или веко — нормально,
@@ -166,20 +181,20 @@ CHECKS_PACKSHOT = [
      'нет пронумерованного референса вещи — модель нарисует свою', 'ЗАКОНЫ · картинка сильнее текста'),
     ('R2', lambda t: 'style reference' in t.lower(),
      'нет референса стиля', 'скил reference-shoot · набор'),
-    ('P1', lambda t: bool(re.search(r'white background|plain white|seamless white', t, re.I)),
+    ('K1', lambda t: bool(re.search(r'white background|plain white|seamless white', t, re.I)),
      'не задан белый фон — пэкшот приедет в интерьере', 'ЗАКОНЫ · пэкшот'),
-    ('P2', lambda t: bool(re.search(r'no (people|person|model|figure)', t, re.I)),
+    ('K2', lambda t: bool(re.search(r'no (people|person|model|figure)', t, re.I)),
      'нет запрета человека — в пэкшот приедет модель', 'ЗАКОНЫ · A2 дефолт категории'),
     # Пэкшот бывает двух видов. Съёмка существующей вещи обязана быть привязана к её картинке.
     # Предложение новой вещи привязывать не к чему — там роль якоря играет числовая
     # спецификация: высота каблука в сантиметрах, число ремешков, форма мыска словом-запретом.
     # Введено 16.08.2026, когда понадобилось предложить заказчику три варианта обуви.
-    ('P3', lambda t: bool(re.search(r'matches? Image \d exactly|identical to Image \d|exactly as in Image \d', t, re.I))
+    ('K3', lambda t: bool(re.search(r'matches? Image \d exactly|identical to Image \d|exactly as in Image \d', t, re.I))
      or (bool(re.search(r'PROPOSAL: no existing sample', t))
          and bool(re.search(r'\d+(\.\d+)?\s?(cm|centimetre|centimeter)', t, re.I))),
      'вещь ни к чему не привязана: нужна либо строка «matches Image N exactly», либо пометка '
      '«PROPOSAL: no existing sample» вместе с числовой спецификацией в сантиметрах', 'ЗАКОНЫ · A1 картинка сильнее текста'),
-    ('P4', lambda t: bool(re.search(r'no shadow|soft even|even studio|no hard shadow', t, re.I)),
+    ('K4', lambda t: bool(re.search(r'no shadow|soft even|even studio|no hard shadow', t, re.I)),
      'не задан ровный студийный свет — пэкшот получит сцену вместо света', 'ЗАКОНЫ · пэкшот'),
     ('W1', lambda t: not re.search(
         r'(smooth|flat)[^.]{0,40}\b(knit|fabric|cloth|wool|jersey|weave)\b(?!\s+(line|edge))', t, re.I)
@@ -242,7 +257,9 @@ def main():
         print('коды фото: ' + ', '.join(c[0] for c in CHECKS_PHOTO))
         print('коды видео: ' + ', '.join(c[0] for c in CHECKS_VIDEO))
         print(f'правил интерьера: {len(CHECKS_INTERIOR)}')
-        print('коды интерьера: ' + ', '.join(c[0] for c in CHECKS_INTERIOR) + '\n')
+        print('коды интерьера: ' + ', '.join(c[0] for c in CHECKS_INTERIOR))
+        print(f'правил пэкшота: {len(CHECKS_PACKSHOT)}')
+        print('коды пэкшота: ' + ', '.join(c[0] for c in CHECKS_PACKSHOT) + '\n')
         return 0
     args = [a for a in sys.argv[1:] if a not in ('--видео', '--интерьер', '--пэкшот')]
     video = '--видео' in sys.argv

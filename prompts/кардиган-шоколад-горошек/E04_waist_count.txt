@@ -4,7 +4,7 @@ Image 2: the brown fine-knit cardigan — chocolate-brown fine knit, cream polka
 Style reference is given in words only: see LIGHT and GRADE.
 PRESERVE — HIGHEST PRIORITY
 Her face stays pixel-identical to Image 1: same eyes with a heavy upper lid and a narrow opening, same thick brows, same nose, same wide mouth with a fuller lower lip, same jawline, olive skin with visible pores, no retouching.
-Exactly five fingers on each hand, both hands whole. Exactly three buttons on the placket and no fourth button anywhere, each a smooth polished gold dome in a broad ring of fine radial ribbing. A moderate V-neckline, never a round crew neckline. The knit runs to the very edge of each sleeve, a plain flat knit line: no band, no rib, no elastic, no undotted strip.
+Exactly five fingers on each hand, both hands whole. Exactly three buttons on the placket and no fourth button anywhere, each a smooth polished gold dome in a broad ring of fine radial ribbing. A moderate V-neckline, never a round crew neckline. The cardigan itself has no pockets of any kind, no flaps and no welts. The knit runs to the very edge of each sleeve, a plain flat knit line: no band, no rib, no elastic, no undotted strip.
 HAIR
 Dark chestnut hair pulled back smoothly with a centre parting into a low knot at the nape, no loose lengths over the shoulders, no ponytail, no fringe.
 OUTFIT
@@ -14,12 +14,12 @@ Warm walnut wood panelling filling the wall behind her. Nothing styled, no furni
 GEOGRAPHY
 She stands against the wide walnut panel on the long wall of the room, the camera straight in front of that panel. The light stays identical to every other frame of this series.
 CAMERA
-85mm lens on full frame, waist-up crop: the frame runs from just above her head down to mid-thigh, so the whole placket from the V-neckline to the hem of the cardigan is inside the frame together with the top of the front jeans pocket. Camera at her eye level. Both hands whole and inside the frame. Shallow depth of field, the panelling behind her softly out of focus.
+85mm lens on full frame, waist-up crop: the frame runs from just above her head down to her hips, just below the waistband of the jeans, so the whole placket from the V-neckline to the hem of the cardigan is inside the frame together with the top of the front pocket of her jeans. Camera at her eye level. Both hands whole and inside the frame. Shallow depth of field, the panelling behind her softly out of focus.
 SCENE
-Her weight has just shifted onto one hip and the shift is not yet finished; one hip carries her and sits higher than the other. One hand is halfway to the front pocket, the fingers not yet inside it, the momentum of the step still in her. A small gust from the side has just lifted a few short hairs at her temple, and they are still settling.
+Her weight has just shifted onto one hip and the shift is not yet finished; one hip carries her and sits higher than the other. One hand is halfway to the front pocket of her jeans, the fingers not yet inside it, the momentum of the step still in her. A small gust from the side has just lifted a few short hairs at her temple, and they are still settling. Exactly three gold buttons run down the placket and no fourth button appears anywhere on the garment, however long the placket turns out in this crop.
 LIGHT
 Direct on-camera flash, a bright pool of light on the panelling behind her, warm falloff to the edges, a short hard shadow just behind her. No window light, no golden hour, no softbox, no rim light.
 GRADE
 Editorial 35mm colour film, warm walnut and chocolate palette. Soft contrast, lifted blacks, visible film grain, no digital sharpening, no clarity, no HDR. No large creases or accordion folds, while keeping the knit texture crisp and fully resolved. Natural skin texture retained.
 EXCLUDE
-No changed face, no different woman, no lookalike, no beautification, no smoothing. No ribbed cuffs, no ribbed band, no fourth button, no crest buttons, no bag, no jewelry, no sunglasses, no props. No static pose, no posed stance, no still hair, no hands at rest, no robotic stiffness. No collage, no split frame, no diptych, no multiple panels, no grid, no borders, single photograph only. No smile, no text, no logos, no deformed hands, no extra fingers, no other people in the frame.
+No changed face, no different woman, no lookalike, no beautification, no smoothing. No ribbed cuffs, no ribbed band, no fourth button, no crest buttons, no pockets on the cardigan, no bag, no jewelry, no sunglasses, no props. No collage, no split frame, no diptych, no multiple panels, no grid, single photograph only. No smile, no text, no logos, no deformed hands, no extra fingers, no other people in the frame.

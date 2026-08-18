@@ -124,7 +124,16 @@ def build(run, src):
         for c, n, lf, uz, sc, mk, _ in rows:
             f.write(f'| {c} | {n} | {lf} | {uz} | {sc} | **{mk}** |\n')
 
-    subprocess.run(['zip', '-qr', f'{out}.zip', out])
+    # Код возврата проверяется: без zip в системе команда просто не выполнится, а скрипт
+    # печатал «архив собран» и возвращал путь к несуществующему файлу (Ф137).
+    try:
+        r = subprocess.run(['zip', '-qr', f'{out}.zip', out])
+        code = r.returncode
+    except FileNotFoundError:
+        code = 127
+    if code != 0 or not os.path.exists(f'{out}.zip'):
+        print(f'ОШИБКА: архив не собран (код {code}). Папка готова: {out}')
+        return out
     print(f'{out}.zip — кадров {len(rows)}, ОК {len(ok)}')
     return f'{out}.zip'
 

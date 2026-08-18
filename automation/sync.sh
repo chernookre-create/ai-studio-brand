@@ -32,11 +32,32 @@ if ! git remote get-url origin >/dev/null 2>&1; then
   exit 0
 fi
 
-if [ -n "$(git log origin/main..HEAD --oneline 2>/dev/null)" ]; then
-  if git push -q origin HEAD; then
-    echo "[$STAMP] отправлено на GitHub"
-  else
-    echo "[$STAMP] ОШИБКА push — проверьте авторизацию: cd ~/Developer/AI-STUDIO/project && git push"
-    exit 1
-  fi
+# Раньше здесь стояло `git log origin/main..HEAD 2>/dev/null`: на ветке не main или при
+# отсутствующей ссылке git падал, вывод глушился, условие выходило ложным — и скрипт молча
+# не пушил, не написав в лог ни строки. Молчание выглядело как «всё отправлено» (Ф135).
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if ! git rev-parse --verify -q "origin/$BRANCH" >/dev/null; then
+  echo "[$STAMP] ветка $BRANCH ещё не на GitHub — отправляю впервые"
+  AHEAD=1
+else
+  AHEAD=$(git rev-list --count "origin/$BRANCH..HEAD" 2>/dev/null || echo 0)
 fi
+
+if [ "$AHEAD" = "0" ]; then
+  echo "[$STAMP] на GitHub уже всё"
+  exit 0
+fi
+
+if git push -q origin "$BRANCH"; then
+  echo "[$STAMP] отправлено на GitHub: коммитов $AHEAD"
+  exit 0
+fi
+
+# Push отклонён. Самая частая причина — на GitHub есть коммит, которого нет тут.
+echo "[$STAMP] push отклонён, пробую подтянуть чужие коммиты"
+if git pull --rebase -q origin "$BRANCH" && git push -q origin "$BRANCH"; then
+  echo "[$STAMP] отправлено после rebase: коммитов $AHEAD"
+  exit 0
+fi
+echo "[$STAMP] ОШИБКА push. Руками: cd ~/Developer/AI-STUDIO/project && git pull --rebase && git push"
+exit 1
