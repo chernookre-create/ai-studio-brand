@@ -165,28 +165,6 @@ def main():
                 hard.append(f'{s}: {m}')
     check('набор описан данными, а не кодом', not hard, '; '.join(hard))
 
-    print('\n6е. Опросник готовности: состояние совпадает со списком пунктов')
-    import re as _re2
-    rd = open(os.path.join(TOOLS, 'readiness.py'), encoding='utf-8').read()
-    ids = set(_re2.findall(r'\("([A-Z]\d)",', rd))
-    st_p = os.path.join(ROOT, '00_readiness', 'state.json')
-    if not os.path.exists(st_p):
-        check('00_readiness/state.json', False, 'файла нет')
-    else:
-        import json as _j2
-        st = _j2.load(open(st_p, encoding='utf-8'))
-        got = set(st.get('готово', [])) | set(st.get('нет', []))
-        extra, missing = sorted(got - ids), sorted(ids - got)
-        det = (('лишние: ' + ', '.join(extra) + ' ') if extra else '') + \
-              (('не заполнены: ' + ', '.join(missing)) if missing else '')
-        check(f'{len(ids)} пунктов опросника, все отмечены', not extra and not missing, det)
-
-    print('\n6д. Реестр: ни одна ссылка на промпт не двусмысленна')
-    r = subprocess.run([sys.executable, os.path.join(TOOLS, 'registry.py'), '--проверка'],
-                       capture_output=True, text=True)
-    check('одинаковый код в двух сериях не связывается с чужим текстом', r.returncode == 0,
-          r.stdout.strip().splitlines()[-1] if r.stdout else '')
-
     print('\n6в. База промптов: нет побайтных дублей')
     import hashlib
     seen_hash, dupes = {}, []
@@ -213,6 +191,43 @@ def main():
                   if not r.get('файл') or not os.path.exists(os.path.join(ROOT, r['файл']))]
         check(f'{len(recs) - len(broken)} из {len(recs)} записей с живым файлом',
               not broken, 'без файла: ' + ', '.join(broken) if broken else '')
+
+    print('\n6д. Реестр: ни одна ссылка на промпт не двусмысленна')
+    r = subprocess.run([sys.executable, os.path.join(TOOLS, 'registry.py'), '--проверка'],
+                       capture_output=True, text=True)
+    check('одинаковый код в двух сериях не связывается с чужим текстом', r.returncode == 0,
+          r.stdout.strip().splitlines()[-1] if r.stdout else '')
+
+    print('\n6е. Опросник готовности: состояние совпадает со списком пунктов')
+    import re as _re2
+    rd = open(os.path.join(TOOLS, 'readiness.py'), encoding='utf-8').read()
+    ids = set(_re2.findall(r'\("([A-Z]\d)",', rd))
+    st_p = os.path.join(ROOT, '00_readiness', 'state.json')
+    if not os.path.exists(st_p):
+        check('00_readiness/state.json', False, 'файла нет')
+    else:
+        import json as _j2
+        st = _j2.load(open(st_p, encoding='utf-8'))
+        got = set(st.get('готово', [])) | set(st.get('нет', []))
+        extra, missing = sorted(got - ids), sorted(ids - got)
+        det = (('лишние: ' + ', '.join(extra) + ' ') if extra else '') + \
+              (('не заполнены: ' + ', '.join(missing)) if missing else '')
+        check(f'{len(ids)} пунктов опросника, все отмечены', not extra and not missing, det)
+
+        # Ключи самого файла — вторая половина проверки. Первая редакция сверяла только
+        # списки пунктов, а посторонний ключ верхнего уровня не видела вовсе, хотя README
+        # обещал именно проверку ключей. Ф104 закрывался как раз на «состояние содержит
+        # ключи, которых в опроснике нет» — та половина оставалась открытой до Ф110.
+        ALLOWED = {'проект', 'обновлено', 'правило', 'готово', 'нет'}
+        stray = sorted(set(st) - ALLOWED)
+        check('в state.json нет посторонних полей', not stray,
+              ('лишние поля: ' + ', '.join(stray)) if stray else '')
+
+        bad_type = [k for k in ('готово', 'нет') if not isinstance(st.get(k), list)]
+        check('готово и нет — списки', not bad_type, ', '.join(bad_type))
+
+        both = sorted(set(st.get('готово', [])) & set(st.get('нет', [])))
+        check('пункт не стоит одновременно в готово и в нет', not both, ', '.join(both))
 
     if full:
         print('\n7. Калибровка метрики лица на заведомо одинаковом случае')
