@@ -16,6 +16,12 @@ import sys
 
 import cv2
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from obs import операция
+except Exception:                                                # noqa: BLE001
+    операция = None                    # наблюдаемость необязательна: сдача важнее журнала
 from PIL import Image, ImageDraw, ImageFont
 
 F = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
@@ -169,4 +175,13 @@ if __name__ == '__main__':
     if not os.path.isdir(_args[1]):
         print(f'Папки с кадрами нет: {_args[1]}' + ПОДСКАЗКА)
         sys.exit(2)
-    build(_args[0], _args[1])
+    if операция is None:
+        build(_args[0], _args[1])
+    else:
+        with операция('сдача', код=_args[0], ключ='сдача прогона') as оп:
+            оп.этап('Validation')
+            оп.этап('Writes')
+            путь = build(_args[0], _args[1])
+            оп.записал(str(путь))
+            оп.этап('Result')
+            оп.готово('собрано')

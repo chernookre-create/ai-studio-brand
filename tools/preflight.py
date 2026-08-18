@@ -97,6 +97,27 @@ def detect_mode(text):
     return 'фото'
 
 
+def _журнал(файл, разрешено, нарушений):
+    """Записать решение предполётной проверки. Это Validation в терминах наблюдаемости:
+    единственное место, где комплект говорит «запускать можно» или «нельзя»."""
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from obs import операция
+    except Exception:                                            # noqa: BLE001
+        return
+    try:
+        with операция('preflight', код=os.path.basename(файл), ключ='предполётная проверка') as оп:
+            оп.этап('Validation')
+            if разрешено:
+                оп.проверил('предполётная проверка', 'РАЗРЕШЕНО', 'ноль нарушений', True)
+                оп.готово('разрешено')
+            else:
+                оп.сбой('E_PREFLIGHT', f'нарушений: {нарушений}')
+                оп.готово('запрещено')
+    except Exception:                                            # noqa: BLE001
+        pass
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     video = '--видео' in sys.argv
@@ -201,6 +222,7 @@ def main():
     print('\n' + '=' * 78)
     print('РАЗРЕШЕНО ЗАПУСКАТЬ' if ok else 'ЗАПУСК ЗАПРЕЩЁН — см. нарушения выше')
     print('=' * 78 + '\n')
+    _журнал(args[0] if args else '—', ok, 0 if ok else (r.returncode or 1))
     return 0 if ok else 1
 
 

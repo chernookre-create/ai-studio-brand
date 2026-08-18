@@ -11,3 +11,9 @@
 __pycache__/
 *.pyc
 .DS_Store
+# Журнал наблюдаемости: репозиторий публичный, а события содержат коды кадров и имена файлов.
+# Долговременное хранение — перенос сводки на мак, в ~/Developer/AI-STUDIO/obs/.
+00_obs/events.jsonl
+00_obs/events.jsonl.*
+00_obs/state.json
+00_obs/журнал.md
