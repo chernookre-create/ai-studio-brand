@@ -58,7 +58,7 @@ def main():
     print(f'\nФайлов в комплекте: {n}')
 
     print('\n1. Скрипты на месте и синтаксически целы')
-    for s in SCRIPTS:
+    for s in SCRIPTS + ['selftest.py']:
         p = os.path.join(TOOLS, s)
         if not os.path.exists(p):
             check(s, False, 'файла нет')
@@ -164,6 +164,28 @@ def main():
             if m in txt:
                 hard.append(f'{s}: {m}')
     check('набор описан данными, а не кодом', not hard, '; '.join(hard))
+
+    print('\n6е. Опросник готовности: состояние совпадает со списком пунктов')
+    import re as _re2
+    rd = open(os.path.join(TOOLS, 'readiness.py'), encoding='utf-8').read()
+    ids = set(_re2.findall(r'\("([A-Z]\d)",', rd))
+    st_p = os.path.join(ROOT, '00_readiness', 'state.json')
+    if not os.path.exists(st_p):
+        check('00_readiness/state.json', False, 'файла нет')
+    else:
+        import json as _j2
+        st = _j2.load(open(st_p, encoding='utf-8'))
+        got = set(st.get('готово', [])) | set(st.get('нет', []))
+        extra, missing = sorted(got - ids), sorted(ids - got)
+        det = (('лишние: ' + ', '.join(extra) + ' ') if extra else '') + \
+              (('не заполнены: ' + ', '.join(missing)) if missing else '')
+        check(f'{len(ids)} пунктов опросника, все отмечены', not extra and not missing, det)
+
+    print('\n6д. Реестр: ни одна ссылка на промпт не двусмысленна')
+    r = subprocess.run([sys.executable, os.path.join(TOOLS, 'registry.py'), '--проверка'],
+                       capture_output=True, text=True)
+    check('одинаковый код в двух сериях не связывается с чужим текстом', r.returncode == 0,
+          r.stdout.strip().splitlines()[-1] if r.stdout else '')
 
     print('\n6в. База промптов: нет побайтных дублей')
     import hashlib

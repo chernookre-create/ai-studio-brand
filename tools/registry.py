@@ -37,7 +37,7 @@ SERIES_TITLE = {
     'v5:F': 'F — дальние и общие планы с якорем, ореховая комната (17.08)',
     'v5:C': 'C — ближние планы с якорем (17.08)',
     'v6:ST': 'ST — студия, белая циклорама (17.08)',
-    'final:P': 'интерьеры и предметка — кадры без человека',
+    'final:P': 'P-финал — точки съёмки и планировка ореховой комнаты (17.08)',
 }
 
 # Хронологический порядок разделов; ключи вне списка идут в конец по алфавиту.
@@ -65,13 +65,29 @@ def scene_tail(text):
     return (sents[-1], sents[-2] if len(sents) > 1 else None)
 
 
-def find_prompt(code):
-    """Файл промпта по коду кадра. Ищем и в корне prompts/, и в подпапках серий."""
+AMBIGUOUS = []
+
+
+def find_prompt(code, series=''):
+    """Файл промпта по коду кадра, в пределах своей серии.
+
+    Коды уникальны только внутри серии: `P05` есть и в v3, и в final. Прежняя версия
+    искала по всему `prompts/` и брала первое совпадение — кадру final:P05 подставился
+    текст архивного v3:P05, то есть чужой промпт под видом сохранённого (Ф95).
+    Теперь архив серии v3 виден только кадрам v3, а всем остальным — нет; при остатке
+    неоднозначности ссылка не ставится вовсе и попадает в отчёт `--проверка`.
+    """
+    hits = []
     for pat in (f'prompts/{code}.txt', f'prompts/*/{code}.txt',
                 f'prompts/*/*/{code}.txt', f'prompts/*/*/*/{code}.txt'):
-        hits = sorted(glob.glob(os.path.join(ROOT, pat)))
-        if hits:
-            return os.path.relpath(hits[0], ROOT)
+        hits += [os.path.relpath(h, ROOT) for h in sorted(glob.glob(os.path.join(ROOT, pat)))]
+    hits = sorted(set(hits))
+    in_v3 = series.startswith('v3')
+    scoped = [h for h in hits if ('архив/v3' in h) == in_v3]
+    if len(scoped) == 1:
+        return scoped[0]
+    if len(scoped) > 1:
+        AMBIGUOUS.append(f'{series}:{code} → ' + ', '.join(scoped))
     return None
 
 
@@ -93,7 +109,7 @@ def collect():
             verdict = str(v.get('вердикт', '')).lower()
             code = v.get('код') or os.path.splitext(fname)[0]
             series = series_key(base, code)
-            path = find_prompt(code)
+            path = find_prompt(code, series)
             tail = prev = None
             if path:
                 tail, prev = scene_tail(open(os.path.join(ROOT, path), encoding='utf-8').read())
@@ -102,6 +118,7 @@ def collect():
                 'название': v.get('название', ''), 'лицо': v.get('лицо', ''),
                 'узор': v.get('узор', ''), 'счёт': v.get('счёт', ''),
                 'принят': ('ок' in verdict or 'принят' in verdict),
+                'кроп': v.get('тип') == 'кроп',
                 'промпт': path, 'хвост': tail, 'предпоследняя': prev,
             })
     return rows
@@ -116,15 +133,25 @@ def face_num(s):
 
 def build(rows):
     ok = [r for r in rows if r['принят']]
-    lost = [r for r in ok if not r['промпт']]
+    # Кроп из принятого кадра — не генерация: по законам C3 и D3 такие планы не снимаются
+    # вовсе. Их нельзя считать ни в «снято», ни в «пробелах»: промпта у них не бывает
+    # по устройству, а не по недосмотру (Ф96).
+    gen = [r for r in rows if not r['кроп']]
+    crops = [r for r in ok if r['кроп']]
+    lost = [r for r in ok if not r['промпт'] and not r['кроп']]
     out = []
     A = out.append
 
     A('# РЕЕСТР ПРОМПТОВ — что сработало\n')
     A('Собирается скриптом `tools/registry.py` из `results/*.json` и текстов промптов.')
     A('Руками не правится: правка потеряется при следующей сборке.\n')
-    A(f'Принятых кадров: **{len(ok)}** из {len(rows)} снятых. '
-      f'Текст промпта сохранён у **{len(ok) - len(lost)}**, потерян у **{len(lost)}**.\n')
+    A(f'Сгенерировано кадров: **{len(gen)}**, принято **{len(ok) - len(crops)}**. '
+      f'Плюс {len(crops)} кропа из принятых кадров — это не генерации.\n')
+    A(f'Текст промпта сохранён у **{len(ok) - len(crops) - len(lost)}** принятых кадров, '
+      f'потерян у **{len(lost)}**.\n')
+    A('Числа «сколько кадров вышло с первого раза» здесь нет и не будет: в `results/` нет '
+      'поля, которое бы это фиксировало. Всё, что считалось по именам файлов или по суффиксам '
+      'кодов, давало разные ответы и оказалось выдумкой (Ф97).\n')
 
     A('## Как этим пользоваться\n')
     A('Ищешь строку с нужным планом, берёшь её файл промпта за основу и меняешь два-три блока.')
@@ -199,17 +226,27 @@ def main():
         return 1
     text = build(rows)
     ok = [r for r in rows if r['принят']]
-    lost = [r for r in ok if not r['промпт']]
+    lost = [r for r in ok if not r['промпт'] and not r['кроп']]
+    crops = [r for r in ok if r['кроп']]
+    gen = [r for r in rows if not r['кроп']]
     if '--проверка' in sys.argv:
-        print(f'принятых {len(ok)}, без промпта {len(lost)}')
+        print(f'сгенерировано {len(gen)}, принято {len(ok) - len(crops)}, '
+              f'кропов {len(crops)}, без промпта {len(lost)}')
         for r in lost:
             print(f'  {r["серия"]}/{r["код"]}  {r["название"]}')
+        if AMBIGUOUS:
+            print('НЕОДНОЗНАЧНЫЕ ССЫЛКИ НА ПРОМПТ (один код в двух местах):')
+            for a in AMBIGUOUS:
+                print('  ' + a)
+            return 1
+        print('неоднозначных ссылок нет')
         return 0
     dst = os.path.join(ROOT, 'prompts', 'РЕЕСТР.md')
     open(dst, 'w', encoding='utf-8').write(text)
-    print(f'prompts/РЕЕСТР.md собран: {len(ok)} принятых кадров, '
-          f'{len(ok) - len(lost)} с промптом, {len(lost)} без.')
-    return 0
+    print(f'prompts/РЕЕСТР.md собран: сгенерировано {len(gen)}, принято '
+          f'{len(ok) - len(crops)} плюс {len(crops)} кропа; '
+          f'с промптом {len(ok) - len(crops) - len(lost)}, без {len(lost)}.')
+    return 1 if AMBIGUOUS else 0
 
 
 if __name__ == '__main__':
