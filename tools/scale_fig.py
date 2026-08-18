@@ -39,11 +39,31 @@ sys.path.insert(0, __file__.rsplit('/', 1)[0])
 from qc_frame import TOL, dot_pitch, to_work  # noqa: E402
 
 
+# Модель вырезания названа явно и не берётся по умолчанию. Причина: `rembg` меняет свой
+# дефолт между версиями, а протокол первой сессии ставит его командой без версии. Чистая
+# сессия 18.08 получила rembg с дефолтом `bria-rmbg-2.0` (1.02 ГБ) — вызов упал по памяти
+# с SIGKILL, то есть `scale_fig` и `sharpness` не работали вовсе, а selftest печатал
+# «комплект исправен»: он проверял библиотеку импортом, а не вызовом (Ф159).
+# Второе, менее заметное: все наши числа по узору на ростовых кадрах измерены маской
+# `u2net`. Смена модели молча сделала бы новые числа несравнимыми со старыми (F6).
+МОДЕЛЬ_ВЫРЕЗАНИЯ = 'u2net'
+_сессия = None
+
+
+def сессия_вырезания():
+    global _сессия
+    if _сессия is None:
+        from rembg import new_session
+        _сессия = new_session(МОДЕЛЬ_ВЫРЕЗАНИЯ)
+    return _сессия
+
+
 def figure_height(im):
     """Высота фигуры в пикселях рабочего масштаба, по маске rembg."""
     from rembg import remove
     ok, buf = cv2.imencode('.png', im)
-    a = np.array(Image.open(io.BytesIO(remove(buf.tobytes()))).convert('RGBA'))[..., 3]
+    a = np.array(Image.open(io.BytesIO(
+        remove(buf.tobytes(), session=сессия_вырезания()))).convert('RGBA'))[..., 3]
     ys, _ = np.where(a > 128)
     if len(ys) < 1000:
         return None

@@ -39,6 +39,28 @@ SCRIPTS = ['preflight.py', 'check_prompt.py', 'face_id.py', 'qc_frame.py',
            'scale_fig.py', 'trim_border.py', 'deliver.py', 'readiness.py', 'registry.py',
            'lineage.py', 'rules_selftest.py', 'sharpness.py']
 
+def без_текста(код):
+    """Убрать комментарии и строки документации: пример вызова в docstring
+    (`face_id.py --эталон ref.jpg кадр1.png`) — это не ссылка на файл, а образец
+    команды. Первая редакция расширенной проверки поймала семь таких и была неправа."""
+    import io, tokenize as _tk
+    куски, prev = [], None
+    try:
+        for t in _tk.generate_tokens(io.StringIO(код).readline):
+            if t.type == _tk.COMMENT:
+                continue
+            if t.type == _tk.STRING and (prev is None or prev in (_tk.INDENT, _tk.NEWLINE, _tk.NL)):
+                continue          # docstring на своей строке
+            куски.append(t.string)
+            if t.type not in (_tk.NL, _tk.NEWLINE, _tk.INDENT, _tk.DEDENT):
+                prev = t.type
+            else:
+                prev = t.type
+    except Exception:
+        return код
+    return '\n'.join(куски)
+
+
 fails = []
 
 
@@ -72,12 +94,37 @@ def main():
                            capture_output=True, text=True)
         check(s, r.returncode == 0, r.stderr.strip().splitlines()[-1] if r.returncode else '')
 
-    print('\n2. Библиотеки')
-    for mod in ('cv2', 'numpy', 'PIL', 'insightface', 'onnxruntime', 'rembg'):
-        r = subprocess.run([sys.executable, '-c', f'import {mod}'], capture_output=True, text=True)
-        check(mod, r.returncode == 0,
-              'нет — pip install insightface onnxruntime rembg --break-system-packages'
-              if r.returncode else '')
+    print('\n2. Библиотеки — не импортом, а вызовом')
+    # Импорт ничего не доказывает. 18.08 чистая сессия поставила `rembg` со сменившимся
+    # дефолтом модели (`bria-rmbg-2.0`, 1.02 ГБ), вызов получал SIGKILL — то есть `scale_fig`
+    # и `sharpness` не работали вовсе, а этот пункт был зелёный: `import rembg` проходит за
+    # долю секунды (Ф159). Закон F5 в чистом виде: проверка искала слово, а не факт.
+    # SIGKILL нельзя поймать try/except, поэтому каждая проба идёт в дочернем процессе.
+    ПРОБЫ = [
+        ('cv2', "import cv2, numpy as np; "
+                "assert cv2.Laplacian(np.zeros((8, 8), np.uint8), cv2.CV_64F).shape == (8, 8)"),
+        ('numpy', "import numpy as np; assert float(np.zeros(4).var()) == 0.0"),
+        ('PIL', "from PIL import Image; Image.new('RGB', (8, 8)).tobytes()"),
+        ('onnxruntime', "import onnxruntime; assert onnxruntime.get_available_providers()"),
+        ('insightface', "from insightface.app import FaceAnalysis"),
+        ('rembg · вырезание фигуры моделью u2net',
+         "import io, sys, os; sys.path.insert(0, os.path.join(%r, 'tools')); "
+         "from PIL import Image; from rembg import remove; "
+         "from scale_fig import сессия_вырезания; "
+         "b = io.BytesIO(); Image.new('RGB', (64, 64), (200, 120, 60)).save(b, 'PNG'); "
+         "out = remove(b.getvalue(), session=сессия_вырезания()); "
+         "assert Image.open(io.BytesIO(out)).mode == 'RGBA'" % ROOT),
+    ]
+    for имя, код in ПРОБЫ:
+        r = subprocess.run([sys.executable, '-c', код], capture_output=True, text=True, timeout=900)
+        деталь = ''
+        if r.returncode != 0:
+            хвост = (r.stderr.strip().splitlines() or [''])[-1]
+            if r.returncode < 0 or r.returncode == 137:
+                хвост = (f'процесс убит сигналом (код {r.returncode}) — чаще всего это нехватка '
+                         'памяти; try/except такое не ловит, поэтому проба и идёт отдельным процессом')
+            деталь = хвост or 'нет — pip install insightface onnxruntime rembg --break-system-packages'
+        check(имя, r.returncode == 0, деталь)
 
     slots, series = слоты_набора()
     print(f'\n3. Девять слотов набора — серия «{series}»' if slots else '\n3. Девять слотов набора')
@@ -158,27 +205,6 @@ def main():
     dead = []
     # meta.json создаётся deliver.py в момент сдачи — это цель записи, а не ссылка.
     RUNTIME = {'meta.json'}
-    def без_текста(код):
-        """Убрать комментарии и строки документации: пример вызова в docstring
-        (`face_id.py --эталон ref.jpg кадр1.png`) — это не ссылка на файл, а образец
-        команды. Первая редакция расширенной проверки поймала семь таких и была неправа."""
-        import io, tokenize as _tk
-        куски, prev = [], None
-        try:
-            for t in _tk.generate_tokens(io.StringIO(код).readline):
-                if t.type == _tk.COMMENT:
-                    continue
-                if t.type == _tk.STRING and (prev is None or prev in (_tk.INDENT, _tk.NEWLINE, _tk.NL)):
-                    continue          # docstring на своей строке
-                куски.append(t.string)
-                if t.type not in (_tk.NL, _tk.NEWLINE, _tk.INDENT, _tk.DEDENT):
-                    prev = t.type
-                else:
-                    prev = t.type
-        except Exception:
-            return код
-        return '\n'.join(куски)
-
     for sc in SCRIPTS:
         txt = без_текста(open(os.path.join(TOOLS, sc), encoding='utf-8').read())
         # Картинки тоже: ссылка на несуществующий .jpg ломает счёт ровно так же, как
@@ -223,9 +249,10 @@ def main():
         pass
     hard = []
     for s in SCRIPTS + ['selftest.py']:
-        lines = [l for l in open(os.path.join(TOOLS, s), encoding='utf-8')
-                 if not l.lstrip().startswith('#')]
-        txt = ''.join(lines)
+        # Комментарии и docstring вырезаются тем же токенизатором, что в пункте 6: имя съёмки
+        # в объяснении «почему так сделано» — это документация, а не зашитое в код имя. Первая
+        # редакция резала только строки с `#` и ругалась на разбор в docstring (Ф164).
+        txt = без_текста(open(os.path.join(TOOLS, s), encoding='utf-8').read())
         for m in sorted(marks):
             if m in txt:
                 hard.append(f'{s}: {m}')
@@ -394,6 +421,93 @@ def main():
                 безымянные.append(os.path.relpath(os.path.join(base, f), ROOT))
         check(f'{всего_кар - len(безымянные)} из {всего_кар} картинок названы',
               not безымянные, ', '.join(безымянные[:5]) + (' …' if len(безымянные) > 5 else ''))
+
+    print('\n6к. Паспорта изделий не описывают предмет, которого в наборе нет')
+    # Правило check_prompt A1 сторожит промпты — но закон A1 отсылает сверять текст с
+    # ПАСПОРТОМ, а паспорт лука трое суток описывал бордовые лоферы, которых в слоте 7 нет.
+    # Механизм «не_путать» не покрывал единственный файл, к которому закон и отсылает (Ф161).
+    # Раздел «Снято с учёта» — законное место для прежнего предмета, он пропускается.
+    import json as _j4, re as _re4
+    _cur_p = os.path.join(ROOT, 'refs', 'CURRENT.json')
+    _карта = {}
+    try:
+        _карта = _j4.load(open(_cur_p, encoding='utf-8')).get('не_путать') or {}
+    except Exception:                                             # noqa: BLE001
+        pass
+    паспорта = []
+    for base, _, files in os.walk(os.path.join(ROOT, 'refs', 'approved')):
+        паспорта += [os.path.join(base, f) for f in sorted(files) if f.endswith('.md')]
+    грязные = []
+    for пп in паспорта:
+        текст = open(пп, encoding='utf-8').read()
+        живое = текст.split('## Снято с учёта')[0]
+        for слот, слова in _карта.items():
+            for w in слова:
+                for м in _re4.finditer(r'\b' + _re4.escape(w) + r'\b', живое, _re4.I):
+                    # Отрицание — законное употребление: строка «не гладкий купол и не широкое
+                    # кольцо» в паспорте кардигана помогает человеку сверять глазами и ничего
+                    # не описывает. Проверка на этом падать не должна, а на утверждении должна.
+                    перед = живое[max(0, м.start() - 14):м.start()].lower()
+                    if _re4.search(r'\b(не|ни|нет|вместо|no|not|never)\b[\s,–—-]*$', перед):
+                        continue
+                    грязные.append(f'{os.path.relpath(пп, ROOT)}: «{w}» (слот {слот})')
+    check(f'{len(паспорта)} паспортов, ни одного слова снятого предмета',
+          not грязные and bool(паспорта),
+          '; '.join(грязные) if грязные else ('паспортов нет' if not паспорта else ''))
+
+    print('\n6л. Обязательные куски текста стоят во ВСЕХ рабочих промптах изделия')
+    # Правка рельефа пуговицы (Ф144) дошла до четырёх баз из шести: E02–E05 её получили,
+    # S04 и S05 нет, а журнал записал «применили к шести». Четвёртый повтор класса «правка,
+    # применённая не везде, — это не правка» (Ф162). Список кусков — в CURRENT.json, потому
+    # что он про сегодняшнее изделие, а не про метод.
+    _треб = {}
+    _папка = ''
+    try:
+        _c = _j4.load(open(_cur_p, encoding='utf-8'))
+        _треб = _c.get('обязательно_в_промптах') or {}
+        _папка = _c.get('папка_промптов') or ''
+    except Exception:                                             # noqa: BLE001
+        pass
+    if not _треб or not _папка:
+        check('обязательно_в_промптах в refs/CURRENT.json', False,
+              'поля нет — проверять нечего, а значит правку снова можно недоделать')
+    else:
+        рабочие = []
+        корень = os.path.join(ROOT, _папка)
+        for base, _, files in os.walk(корень):
+            if any(os.sep + x in base + os.sep for x in ('архив', 'материалы', 'эталоны')):
+                continue
+            рабочие += [os.path.join(base, f) for f in sorted(files) if f.endswith('.txt')]
+        пробелы = []
+        for пр in рабочие:
+            т = open(пр, encoding='utf-8').read()
+            for имя, кусок in _треб.items():
+                if кусок.lower() not in т.lower():
+                    пробелы.append(f'{os.path.basename(пр)}: нет «{имя}»')
+        check(f'{len(рабочие)} промптов изделия, {len(_треб)} обязательных кусков',
+              not пробелы and bool(рабочие), '; '.join(пробелы[:6]))
+
+    print('\n6м. В README нет чисел, которые умеет посчитать скрипт')
+    # Закон F6: у каждого числа один источник. 18.08 README в одной строке говорил
+    # «тринадцать скриптов», в другой «одиннадцать», а на диске было тринадцать — две строки
+    # одного файла спорили друг с другом (Ф163). Проверяем ровно те величины, которые печатают
+    # скрипты: число скриптов, число правил, число файлов, число текстов.
+    ЧИСЛА = {
+        'одиннадцать': 11, 'двенадцать': 12, 'тринадцать': 13, 'четырнадцать': 14,
+    }
+    СЛОВА_РЯДОМ = ('скрипт', 'правил', 'файл', 'текст')
+    rd_p = os.path.join(ROOT, 'README.md')
+    найдено = []
+    if os.path.exists(rd_p):
+        for i, стр in enumerate(open(rd_p, encoding='utf-8'), 1):
+            низ = стр.lower()
+            for сл in ЧИСЛА:
+                if сл in низ and any(w in низ for w in СЛОВА_РЯДОМ):
+                    найдено.append(f'README.md:{i} — «{сл}»')
+            for м in _re4.finditer(r'\b(\d{1,3})\s+(?=\w*(?:скрипт|правил|файл|текст))', низ):
+                найдено.append(f'README.md:{i} — «{м.group(1)}»')
+    check('число, которое печатает скрипт, в прозе README не повторяется',
+          not найдено, '; '.join(найдено[:6]))
 
     if full:
         print('\n7. Калибровка метрики лица на заведомо одинаковом случае')
