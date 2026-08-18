@@ -51,7 +51,18 @@ def slug(s):
 def build(run, src):
     meta = load_meta(src)
     out = f'05_deliver/{run}'
-    shutil.rmtree(out, ignore_errors=True)
+    # Прежде здесь стоял безусловный rmtree: повторный запуск с тем же именем прогона молча
+    # стирал предыдущую сдачу вместе с тем, что заказчик мог туда положить (Ф142).
+    if os.path.exists(out):
+        if '--перезаписать' in sys.argv:
+            shutil.rmtree(out, ignore_errors=True)
+        else:
+            i = 2
+            while os.path.exists(f'{out}-{i}'):
+                i += 1
+            print(f'Папка {out} уже есть — собираю рядом: {out}-{i}. '
+                  f'Перезаписать поверх: --перезаписать')
+            out = f'{out}-{i}'
     os.makedirs(f'{out}/кадры', exist_ok=True)
 
     rows, tiles = [], []

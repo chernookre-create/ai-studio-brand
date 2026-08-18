@@ -80,6 +80,10 @@ def main():
         check('refs/CURRENT.json', False, series)
     else:
         for role, rel in slots:
+            # Пустой якорь — это пилот серии: первый кадр серии сам станет якорем (Ф143).
+            if not rel and 'якорь' in role:
+                check(f'{role} → пилот серии, якоря ещё нет', True)
+                continue
             p = os.path.join(ROOT, rel)
             ok = os.path.exists(p) and os.path.getsize(p) > 1000
             check(f'{role} → {rel}', ok, 'нет или пустой' if not ok else '')
@@ -160,6 +164,8 @@ def main():
     # пришлось бы править при каждой новой съёмке — то есть он был бы тем же дефектом.
     marks = set()
     for _, rel in (slots or []):
+        if not rel:          # пустой якорь пилота — маркера из него не бывает
+            continue
         parts = rel.split('/')
         marks.add(os.path.splitext(parts[-1])[0])
         if len(parts) > 2:
@@ -173,6 +179,7 @@ def main():
         for k, v in _cur.items():
             if k != 'слоты' and isinstance(v, str) and len(v) >= 3 and '—' not in v:
                 marks.add(v)
+        marks.discard('')
     except Exception:
         pass
     hard = []

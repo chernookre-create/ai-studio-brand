@@ -46,7 +46,11 @@ def load_slots():
     slots = d.get('слоты') or {}
     if len(slots) != 9:
         return None, f'в refs/CURRENT.json описано слотов: {len(slots)}, должно быть 9'
-    return [(v, k.split('_', 1)[1] if '_' in k else k) for k, v in sorted(slots.items())], d.get('серия', '')
+    # Пустое значение допускается только у якоря и означает пилот серии: якоря ещё нет,
+    # он появится из этого самого кадра. Правило заказчика от 18.08 — «первый кадр серии
+    # становится якорем», и до него набор состоит из восьми картинок (Ф143).
+    return ([(v, k.split('_', 1)[1] if '_' in k else k) for k, v in sorted(slots.items())],
+            d.get('серия', ''))
 
 
 DOCS_REMINDER = [
@@ -144,9 +148,15 @@ def main():
         print('ЗАПУСК ЗАПРЕЩЁН — набор не описан')
         print('=' * 78 + '\n')
         return 1
-    print(f'\n1. Набор референсов — девять слотов, серия «{series}»:\n')
+    пилот = any((not rel) and 'якорь' in why for rel, why in slots)
+    заголовок = ('восемь слотов, пилот серии — якоря ещё нет' if пилот
+                 else 'девять слотов')
+    print(f'\n1. Набор референсов — {заголовок}, серия «{series}»:\n')
     missing = 0
     for rel, why in slots:
+        if not rel and 'якорь' in why:
+            print(f'  ПИЛОТ  9 якорь — пуст. Этот кадр и станет якорем серии после приёмки.')
+            continue
         p = find(rel)
         if not p:
             print(f'   ОТСУТСТВУЕТ  {rel} — {why}')
