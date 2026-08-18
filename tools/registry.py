@@ -27,13 +27,27 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BLOCKS = ['REFERENCES', 'PRESERVE', 'HAIR', 'OUTFIT', 'LOCATION', 'STREET GEOGRAPHY',
           'GEOGRAPHY', 'CAMERA', 'SCENE', 'LIGHT', 'GRADE', 'EXCLUDE']
 
+# Подпись серии — по префиксу кода, а не по имени файла результатов: в одном файле лежат
+# две разные серии (v4 — это S и R, v5 — это F и C). Прежняя карта «файл → подпись» ставила
+# все кадры 360-круга под заголовок «юбка и обувь» и прятала их от поиска по реестру (Ф71).
 SERIES_TITLE = {
-    'v3': 'v3 — ореховая комната, первая принятая серия',
-    'v4': 'S — юбка и обувь, ореховая комната',
-    'v5': '360 — круг по ореховой комнате',
-    'v6': 'ST — студия, белая циклорама',
-    'final': 'финальная выборка v3',
+    'v3:P': 'v3 — ореховая комната, первая принятая серия (15.08)',
+    'v4:S': 'S — юбка и обувь, ореховая комната (16.08)',
+    'v4:R': 'R — круг 360 по ореховой комнате (16–17.08)',
+    'v5:F': 'F — дальние и общие планы с якорем, ореховая комната (17.08)',
+    'v5:C': 'C — ближние планы с якорем (17.08)',
+    'v6:ST': 'ST — студия, белая циклорама (17.08)',
+    'final:P': 'интерьеры и предметка — кадры без человека',
 }
+
+# Хронологический порядок разделов; ключи вне списка идут в конец по алфавиту.
+SERIES_ORDER = ['v3:P', 'v4:S', 'v4:R', 'v5:F', 'v5:C', 'v6:ST', 'final:P']
+
+
+def series_key(fname_base, code):
+    """Ключ серии: файл результатов плюс буквенный префикс кода кадра."""
+    m = re.match(r'[A-Za-z]+', code or '')
+    return f'{fname_base}:{m.group(0)}' if m else fname_base
 
 
 def scene_tail(text):
@@ -71,13 +85,14 @@ def short(s, n=90):
 def collect():
     rows = []
     for f in sorted(glob.glob(os.path.join(ROOT, 'results', '*.json'))):
-        series = os.path.splitext(os.path.basename(f))[0]
+        base = os.path.splitext(os.path.basename(f))[0]
         data = json.load(open(f, encoding='utf-8'))
         for fname, v in data.items():
             if not isinstance(v, dict):
                 continue
             verdict = str(v.get('вердикт', '')).lower()
             code = v.get('код') or os.path.splitext(fname)[0]
+            series = series_key(base, code)
             path = find_prompt(code)
             tail = prev = None
             if path:
@@ -122,7 +137,9 @@ def build(rows):
 
     for product, items in by_product.items():
         A(f'## Изделие: {product}\n')
-        for series in sorted({i['серия'] for i in items}):
+        keys = {i['серия'] for i in items}
+        ordered = [k for k in SERIES_ORDER if k in keys] + sorted(keys - set(SERIES_ORDER))
+        for series in ordered:
             A(f'### {SERIES_TITLE.get(series, series)}\n')
             A('| код | план | лицо | узор | последняя фраза SCENE | промпт |')
             A('|---|---|---|---|---|---|')
