@@ -24,8 +24,10 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-BLOCKS = ['REFERENCES', 'PRESERVE', 'HAIR', 'OUTFIT', 'LOCATION', 'STREET GEOGRAPHY',
-          'GEOGRAPHY', 'CAMERA', 'SCENE', 'LIGHT', 'GRADE', 'EXCLUDE']
+# Разбор хвоста SCENE берётся из check_prompt — там же, где по нему судит правило P1.
+# Своя копия этой функции здесь жила до 18.08 и на двух текстах из 77 отвечала иначе (Ф153).
+sys.path.insert(0, os.path.join(ROOT, 'tools'))
+from check_prompt import scene_tails  # noqa: E402
 
 # Подпись серии — по префиксу кода, а не по имени файла результатов: в одном файле лежат
 # две разные серии (v4 — это S и R, v5 — это F и C). Прежняя карта «файл → подпись» ставила
@@ -50,19 +52,11 @@ def series_key(fname_base, code):
     return f'{fname_base}:{m.group(0)}' if m else fname_base
 
 
-def scene_tail(text):
-    """Последняя и предпоследняя фразы блока SCENE — приоритетная позиция промпта."""
-    if 'SCENE' not in text:
-        return None, None
-    body = text.split('SCENE', 1)[1]
-    for b in BLOCKS:
-        if f'\n{b}' in body:
-            body = body.split(f'\n{b}', 1)[0]
-    body = body.strip()
-    sents = [s.strip() for s in re.split(r'(?<=[.!?])\s+', body) if s.strip()]
-    if not sents:
-        return None, None
-    return (sents[-1], sents[-2] if len(sents) > 1 else None)
+def хвост_и_предхвост(text):
+    """Последняя и предпоследняя фразы SCENE. Имя своё, чтобы не заслонять общую реализацию:
+    `scene_tails` определён ровно в одном месте комплекта, и проверка 6з за этим следит."""
+    последняя, предпоследняя = scene_tails(text, 2)
+    return (последняя or None, предпоследняя or None)
 
 
 AMBIGUOUS = []
@@ -112,7 +106,7 @@ def collect():
             path = find_prompt(code, series)
             tail = prev = None
             if path:
-                tail, prev = scene_tail(open(os.path.join(ROOT, path), encoding='utf-8').read())
+                tail, prev = хвост_и_предхвост(open(os.path.join(ROOT, path), encoding='utf-8').read())
             rows.append({
                 'серия': series, 'код': code, 'файл_кадра': fname,
                 'название': v.get('название', ''), 'лицо': v.get('лицо', ''),

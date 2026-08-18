@@ -19,25 +19,25 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS = os.path.join(ROOT, 'tools')
 
-def load_slots():
-    """Слоты текущей съёмки из refs/CURRENT.json — не зашиты в скрипт именами файлов."""
-    import json
-    path = os.path.join(ROOT, 'refs', 'CURRENT.json')
-    if not os.path.exists(path):
-        return None, 'refs/CURRENT.json не найден'
-    try:
-        d = json.load(open(path, encoding='utf-8'))
-    except Exception as e:
-        return None, f'не читается: {e}'
-    s = d.get('слоты') or {}
-    if len(s) != 9:
-        return None, f'слотов {len(s)}, должно быть 9'
-    return [(k, v) for k, v in sorted(s.items())], d.get('серия', '')
+# Читатель набора один на весь комплект — тот же, которым пользуется предполётная проверка.
+# Своя копия здесь жила до 18.08: две функции решали, какой набор считать исправным, и
+# каждую правку (пилот на восьми слотах) приходилось делать дважды (Ф155).
+sys.path.insert(0, TOOLS)
+from preflight import load_slots as _load_slots     # noqa: E402
+
+
+def слоты_набора():
+    """Слоты в виде (роль, путь) — preflight отдаёт (путь, роль). Имя своё: `load_slots`
+    определён ровно в одном месте комплекта, проверка 6з за этим следит."""
+    пары, серия = _load_slots()
+    if пары is None:
+        return None, серия
+    return [(роль, путь) for путь, роль in пары], серия
 
 
 SCRIPTS = ['preflight.py', 'check_prompt.py', 'face_id.py', 'qc_frame.py',
            'scale_fig.py', 'trim_border.py', 'deliver.py', 'readiness.py', 'registry.py',
-           'lineage.py', 'rules_selftest.py']
+           'lineage.py', 'rules_selftest.py', 'sharpness.py']
 
 fails = []
 
@@ -79,7 +79,7 @@ def main():
               'нет — pip install insightface onnxruntime rembg --break-system-packages'
               if r.returncode else '')
 
-    slots, series = load_slots()
+    slots, series = слоты_набора()
     print(f'\n3. Девять слотов набора — серия «{series}»' if slots else '\n3. Девять слотов набора')
     if slots is None:
         check('refs/CURRENT.json', False, series)
@@ -303,14 +303,23 @@ def main():
         both = sorted(set(st.get('готово', [])) & set(st.get('нет', [])))
         check('пункт не стоит одновременно в готово и в нет', not both, ', '.join(both))
 
-    print('\n6ж. Поле «лицо» в results/*.json: либо число, либо причина из словаря')
+    print('\n6ж. Поля «лицо» и «узор» в results/*.json: либо число, либо причина из словаря')
     # За сутки одно поле обзавелось семью написаниями одного и того же: «—», «не мерено»,
     # «не мерено, лица нет», «нет в кадре», «со спины», «профиль». Свободный текст в поле,
     # по которому потом считают, — это метрика, которой нет (F7). Словарь закрыт, восьмого
     # написания не будет: проверка падает на любом значении вне списка.
     import glob as _g, json as _j3, re as _re3
-    ПРИЧИНЫ = {'не мерено', 'со спины', 'профиль', 'лица нет в кадре'}
-    ЧИСЛО = _re3.compile(r'^\d\.\d{3}$')
+    # Два поля, по которым в проекте считают, и два закрытых словаря к ним. Свободный текст
+    # в таком поле — это метрика, которой нет (F7): у «лица» набралось семь написаний одного
+    # и того же (Ф147), у «узора» — четырнадцать, включая «+13% на грани» и «база» (Ф154).
+    СЛОВАРИ = {
+        'лицо': ({'не мерено', 'со спины', 'профиль', 'лица нет в кадре'},
+                 _re3.compile(r'^\d\.\d{3}$')),
+        # Знак обязателен: отклонение без знака не читается ни как рост, ни как падение.
+        # Исключение одно — ровный ноль.
+        'узор': ({'не мерено', 'эталон серии', 'на глаз, числа нет', 'не применим'},
+                 _re3.compile(r'^(0%|[+-]\d{1,3}%)$')),
+    }
     res = sorted(_g.glob(os.path.join(ROOT, 'results', '*.json')))
     if not res:
         check('results/*.json', False, 'файлов нет')
@@ -323,20 +332,74 @@ def main():
                 плохие.append(f'{os.path.basename(f)}: не читается ({e})')
                 continue
             for k, it in d.items():
-                if not isinstance(it, dict) or 'лицо' not in it:
+                if not isinstance(it, dict):
                     continue
-                всего += 1
-                v = it['лицо']
-                # Тип тоже часть словаря: число float молча пройдёт по виду, но 0.6
-                # сериализуется как «0.6», а 0.60 — как «0.6», и три знака теряются.
-                if not isinstance(v, str) or (not ЧИСЛО.match(v) and v not in ПРИЧИНЫ):
-                    плохие.append(f'{os.path.basename(f)}:{k} = {v!r}')
+                for поле, (ПРИЧИНЫ, ЧИСЛО) in СЛОВАРИ.items():
+                    if поле not in it:
+                        continue
+                    всего += 1
+                    v = it[поле]
+                    # Тип тоже часть словаря: число float молча пройдёт по виду, но 0.6
+                    # сериализуется как «0.6», а 0.60 — как «0.6», и три знака теряются.
+                    if not isinstance(v, str) or (not ЧИСЛО.match(v) and v not in ПРИЧИНЫ):
+                        плохие.append(f'{os.path.basename(f)}:{k}.{поле} = {v!r}')
         check(f'{всего - len(плохие)} из {всего} записей по словарю', not плохие,
               '; '.join(плохие[:6]) + (' …' if len(плохие) > 6 else ''))
 
+    print('\n6з. Одна идея — одна реализация: общие имена не определены дважды')
+    # 18.08: `scene_tail` был написан дважды — в check_prompt (по нему судит правило P1) и в
+    # registry (по нему пишется колонка реестра). На двух текстах из 77 они отвечали разное,
+    # то есть про главный закон проекта в комплекте было два ответа (Ф153). Рядом нашлись
+    # ещё два таких: `load_slots` (правку про пилот пришлось делать дважды) и `TOL = 0.12`.
+    import ast as _ast
+    ОБЩИЕ = ['scene_tail', 'scene_tails', 'load_slots', 'dot_pitch', 'to_work',
+             'BLOCKS', 'TOL', 'ЛОМКОЕ', 'ОГРАНИЧЕНИЕ', 'ПОСТОБРАБОТКА', 'ПРИЧЁСКА']
+    где = {}
+    for sc in SCRIPTS + ['selftest.py']:
+        try:
+            tree = _ast.parse(open(os.path.join(TOOLS, sc), encoding='utf-8').read())
+        except SyntaxError:
+            continue
+        for node in tree.body:                       # только верхний уровень модуля
+            if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
+                где.setdefault(node.name, []).append(sc)
+            elif isinstance(node, _ast.Assign):
+                for t in node.targets:
+                    if isinstance(t, _ast.Name):
+                        где.setdefault(t.id, []).append(sc)
+    двойные = [f'{имя}: ' + ', '.join(где[имя]) for имя in ОБЩИЕ if len(где.get(имя, [])) > 1]
+    check(f'{len(ОБЩИЕ)} общих имён, у каждого один хозяин', not двойные, '; '.join(двойные))
+
+    print('\n6и. Каждая картинка refs/ названа: либо слот, либо строка инвентаря')
+    # 21 картинка из 32 не была упомянута нигде: ни в слотах, ни в скриптах, ни в документах.
+    # Через сутки такой файл неотличим от рабочего — а одна из них (UP_INT03) показывает ровно
+    # тот дефект локации, который мы лечим текстом, и попади она в слот 5, приехала бы в кадр
+    # вместе с ним (Ф157).
+    инв = os.path.join(ROOT, 'refs', 'ЧТО_ЗДЕСЬ.md')
+    if not os.path.exists(инв):
+        check('refs/ЧТО_ЗДЕСЬ.md', False, 'инвентаря нет')
+    else:
+        текст_инв = open(инв, encoding='utf-8').read()
+        в_слотах = {os.path.basename(rel) for _, rel in (slots or []) if rel}
+        безымянные, всего_кар = [], 0
+        for base, _, files in os.walk(os.path.join(ROOT, 'refs')):
+            if '_снято_с_учёта' in base:
+                continue
+            for f in sorted(files):
+                if not f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+                    continue
+                всего_кар += 1
+                if f in в_слотах or f in текст_инв:
+                    continue
+                безымянные.append(os.path.relpath(os.path.join(base, f), ROOT))
+        check(f'{всего_кар - len(безымянные)} из {всего_кар} картинок названы',
+              not безымянные, ', '.join(безымянные[:5]) + (' …' if len(безымянные) > 5 else ''))
+
     if full:
         print('\n7. Калибровка метрики лица на заведомо одинаковом случае')
-        anchor_rel = dict(slots).get('9_якорь') if slots else None
+        # Роль, а не ключ JSON: ключ `9_якорь` живёт только внутри CURRENT.json, наружу
+        # оба читателя отдают роль без цифры.
+        anchor_rel = dict(slots).get('якорь') if slots else None
         anchor = os.path.join(ROOT, anchor_rel) if anchor_rel else ''
         if not anchor or not os.path.exists(anchor):
             check('якорь на месте', False, f'{anchor_rel or "слот 9"} не найден')

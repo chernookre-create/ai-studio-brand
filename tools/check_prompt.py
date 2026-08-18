@@ -16,26 +16,48 @@
 этом файле — про резинку по краям, а `E1` в «ЗАКОНАХ» — про комнату, крутящуюся словами. Не
 путать. В колонке «правило» указан источник, откуда взято требование.
 """
+import os
 import re
 import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ФОТО
 BLOCKS = ['REFERENCES', 'PRESERVE', 'HAIR', 'OUTFIT', 'LOCATION', 'GEOGRAPHY',
           'CAMERA', 'SCENE', 'LIGHT', 'GRADE', 'EXCLUDE']
 
-def scene_tail(text):
-    """Последняя фраза блока SCENE — приоритетная позиция промпта (законы B1 и B3)."""
+# Заголовки, которых в нынешних одиннадцати блоках нет, но которые стоят в текстах 13.08:
+# тогда блок назывался `STREET GEOGRAPHY`. Резать хвост SCENE по ним всё равно нужно, иначе
+# в разборе старого текста «последней фразой SCENE» окажется строка из следующего блока.
+БЫВШИЕ_БЛОКИ = ['STREET GEOGRAPHY']
+
+
+def scene_tails(text, сколько=1):
+    """Последние фразы блока SCENE — приоритетная позиция промпта (законы B1 и B3).
+
+    **Единственная реализация в комплекте.** До 18.08 их было две: своя в `check_prompt`
+    (по ней судит правило `P1`) и своя в `registry.py` (по ней пишется колонка реестра
+    «последняя фраза SCENE»). На двух текстах из 77 они давали разные ответы: реестр не
+    дорезал блок и показывал строку из следующего. Про главный закон проекта два разных
+    ответа — это два разных закона (Ф153).
+    """
     up = text.upper()
     if 'SCENE' not in up:
-        return ''
+        return [''] * сколько
     body = text[up.index('SCENE') + 5:]
-    for b in BLOCKS:
+    for b in BLOCKS + БЫВШИЕ_БЛОКИ:
         i = body.upper().find('\n' + b)
         if i > 0:
             body = body[:i]
     sents = [x.strip() for x in re.split(r'(?<=[.!?])\s+', body) if x.strip()]
-    return sents[-1] if sents else ''
+    вышло = list(reversed(sents[-сколько:])) if sents else []
+    return вышло + [''] * (сколько - len(вышло))
+
+
+def scene_tail(text):
+    """Последняя фраза блока SCENE."""
+    return scene_tails(text, 1)[0]
 
 
 # Признаки, ради которых приоритетная позиция вообще существует: то, что ломается на кадре.
@@ -256,10 +278,49 @@ CHECKS_VIDEO = [
 ]
 
 
+def чужие_слова(text):
+    """Слова прежнего предмета в строках «Image N:» — расхождение картинки и текста (A1).
+
+    Механизм заведён 18.08 после двух случаев подряд. Пуговицу описывали как гладкий купол в
+    широком кольце, когда в слоте 3 лежал гранёный купол в узком витом ободке, — и из этого
+    вырос ложный закон C6 «рисунок пуговицы не лечится» (Ф144). Обувь в слоте 7 сменилась с
+    бордовых лоферов на кремовые балетки, промпты кардигана поправили, а девять интерьерных и
+    предметных так и звали слот 7 «the oxblood loafers» (Ф156).
+
+    Список слов лежит в `refs/CURRENT.json`, поле `не_путать`, — то есть в данных съёмки, а не
+    в коде: новая съёмка меняет его вместе со слотами. Смотрим только строки `Image N:`: они
+    описывают набор. В PRESERVE слово может быть законным — предложение новой обуви в бордовой
+    коже описывает не слот, а то, чего ещё нет.
+    """
+    import json as _j
+    путь = os.path.join(ROOT, 'refs', 'CURRENT.json')
+    if not os.path.exists(путь):
+        return []
+    try:
+        карта = (_j.load(open(путь, encoding='utf-8')).get('не_путать') or {})
+    except Exception:                                            # noqa: BLE001
+        return []
+    ссылки = [l for l in text.splitlines() if re.match(r'\s*Image\s+\d', l)]
+    беды = []
+    for слот, слова in карта.items():
+        for w in слова:
+            for l in ссылки:
+                if re.search(r'\b' + re.escape(w) + r'\b', l, re.I):
+                    беды.append(f'слот {слот}: «{w}»')
+                    break
+    return беды
+
+
 def run(text, video=False, interior=False, packshot=False):
     checks = (CHECKS_VIDEO if video else CHECKS_INTERIOR if interior
               else CHECKS_PACKSHOT if packshot else CHECKS_PHOTO)
     bad = []
+    # Правило A1 общее для всех четырёх классов: описание слота словами прежнего предмета —
+    # брак источников, и никакая другая проверка его не ловит.
+    чужое = чужие_слова(text)
+    if чужое:
+        bad.append(('A1', 'в строках «Image N:» стоят слова предмета, которого в наборе нет: '
+                    + '; '.join(чужое), 'закон A1 · картинка сильнее текста'))
     for code, test, msg, rule in checks:
         try:
             ok = bool(test(text))
@@ -270,13 +331,15 @@ def run(text, video=False, interior=False, packshot=False):
     return bad
 
 
-VERSION = 'check_prompt 2026-08-18 · четыре класса кадра, коды правил свои'
+VERSION = 'check_prompt 2026-08-18 · четыре класса кадра плюс общее правило A1, коды правил свои'
 
 
 def main():
     if '--версия' in sys.argv:
         print(f'\n{VERSION}')
-        print(f'правил фото: {len(CHECKS_PHOTO)}, правил видео: {len(CHECKS_VIDEO)}')
+        print('общее правило всех классов: A1 — в строках «Image N:» нет слов предмета, '
+              'которого в наборе нет (список в refs/CURRENT.json, поле не_путать)')
+        print(f'правил фото: {len(CHECKS_PHOTO)} + A1, правил видео: {len(CHECKS_VIDEO)} + A1')
         print('коды фото: ' + ', '.join(c[0] for c in CHECKS_PHOTO))
         print('коды видео: ' + ', '.join(c[0] for c in CHECKS_VIDEO))
         print(f'правил интерьера: {len(CHECKS_INTERIOR)}')
@@ -292,7 +355,9 @@ def main():
 
     bad = run(text, video, interior, packshot)
     kind = 'ВИДЕО' if video else ('ИНТЕРЬЕР' if interior else ('ПЭКШОТ' if packshot else 'ФОТО'))
-    total = len(CHECKS_VIDEO if video else (CHECKS_INTERIOR if interior else (CHECKS_PACKSHOT if packshot else CHECKS_PHOTO)))
+    # +1 — общее правило A1 (чужие слова в строках «Image N:»), оно не лежит ни в одном
+    # из четырёх списков, но считается наравне: иначе отчёт печатал «12 из 12» при 13 правилах.
+    total = 1 + len(CHECKS_VIDEO if video else (CHECKS_INTERIOR if interior else (CHECKS_PACKSHOT if packshot else CHECKS_PHOTO)))
     print(f"\nПроверка промпта ({kind}): {total - len(bad)} из {total} правил соблюдено")
     if not bad:
         print('Нарушений нет. Промпт можно отправлять.\n')

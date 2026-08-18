@@ -34,9 +34,9 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
-from qc_frame import dot_pitch, to_work  # noqa: E402
-
-TOL = 0.12
+# Допуск берётся оттуда же, откуда шаг горошка: два числа 0.12 в двух файлах разошлись бы
+# при первой же правке допуска, а по F6 у каждого числа один источник (Ф155).
+from qc_frame import TOL, dot_pitch, to_work  # noqa: E402
 
 
 def figure_height(im):
