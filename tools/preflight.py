@@ -213,7 +213,28 @@ def main():
     print('\n3. Готовность проекта:')
     r2 = subprocess.run([sys.executable, os.path.join(tools, 'readiness.py')],
                         capture_output=True, text=True, cwd=os.path.dirname(tools))
-    print('\n'.join(r2.stdout.strip().splitlines()[:6]))
+    # Жёсткий срез [:6] отрезал ровно то, ради чего пункт существует. После правки вывода
+    # readiness (Ф124 добавил строки веса и строку про ничью) первые шесть строк — это процент
+    # и пояснения, а сами незакрытые признаки начинаются с седьмой. Человек перед кнопкой
+    # Generate видел «80%» и пустоту там, где должны стоять семь рисков (Ф165).
+    # Теперь печатается процент и ВСЕ незакрытые пункты — их столько, сколько их есть.
+    строки = r2.stdout.strip().splitlines()
+    процент = next((l for l in строки if '%' in l), строки[0] if строки else '')
+    пункты = [l for l in строки if l.strip().startswith('[')]
+    риски = {}
+    for i, l in enumerate(строки):
+        if l.strip().startswith('['):
+            риски[l] = строки[i + 1].strip() if i + 1 < len(строки) else ''
+    print(процент)
+    if пункты:
+        print(f'   не закрыто пунктов: {len(пункты)}')
+        for l in пункты:
+            print(l.rstrip())
+            if риски.get(l):
+                print('        ' + риски[l])
+    else:
+        print('   не закрыто: ни одного')
+
 
     # 4. смета
     print(f'\n4. Стоимость запуска: {cost or "НЕ УКАЗАНА"} кредитов')
