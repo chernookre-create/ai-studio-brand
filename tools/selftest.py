@@ -38,7 +38,7 @@ def слоты_набора():
 SCRIPTS = ['preflight.py', 'check_prompt.py', 'face_id.py', 'qc_frame.py',
            'scale_fig.py', 'trim_border.py', 'deliver.py', 'readiness.py', 'registry.py',
            'lineage.py', 'rules_selftest.py', 'sharpness.py',
-           'obs.py', 'obs_cli.py', 'obs_test.py', 'circles.py']
+           'obs.py', 'obs_cli.py', 'obs_test.py', 'circles.py', 'infra_test.py']
 
 def без_текста(код):
     """Убрать комментарии и строки документации: пример вызова в docstring
@@ -244,7 +244,9 @@ def main():
         return False
     # obs_test.py выдумывает пути нарочно — это его работа: он проверяет счётчики записей
     # на выдуманных именах, ничего не записывая. Судить его этим пунктом бессмысленно.
-    for sc in [x for x in SCRIPTS if x != 'obs_test.py']:
+    # infra_test.py — по той же причине: он подсовывает несуществующие пути
+    # `git check-ignore` нарочно, потому что правило судит путь, а не файл.
+    for sc in [x for x in SCRIPTS if x not in ('obs_test.py', 'infra_test.py')]:
         txt = без_текста(open(os.path.join(TOOLS, sc), encoding='utf-8').read())
         # Картинки тоже: ссылка на несуществующий .jpg ломает счёт ровно так же, как
         # ссылка на несуществующий .json, а проверка её не видела (Ф147).
@@ -606,6 +608,17 @@ def main():
                        capture_output=True, text=True, timeout=1800)
     строки = [l.strip() for l in (r.stdout or '').strip().splitlines() if l.strip()]
     check(строки[-1] if строки else 'obs_test.py', r.returncode == 0,
+          '; '.join(l for l in строки if 'СБОЙ' in l)[:300])
+
+    пункт('9. Инфраструктура: автоотправка, .gitignore, сдача')
+    # Пункты 1–8 судят только то, что лежит внутри репозитория. Автоотправку запускает
+    # launchd файлом за его границей, и 19.08 оказалось, что там живёт старая копия
+    # sync.sh: исправление Ф135 лежало в комплекте и никогда не выполнялось. Ни один
+    # пункт этого не видел, потому что ни один не смотрел наружу.
+    r = subprocess.run([sys.executable, os.path.join(TOOLS, 'infra_test.py')],
+                       capture_output=True, text=True, timeout=1800)
+    строки = [l.strip() for l in (r.stdout or '').strip().splitlines() if l.strip()]
+    check(строки[-1] if строки else 'infra_test.py', r.returncode == 0,
           '; '.join(l for l in строки if 'СБОЙ' in l)[:300])
 
     print('\n' + '=' * 70)
