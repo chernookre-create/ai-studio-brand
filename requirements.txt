@@ -6,7 +6,14 @@
 # `automation/setup.sh --версии` и хранит .venv, а не этот файл.
 
 numpy
-opencv-python-headless
+# OpenCV закреплён ниже 5.0 намеренно — единственное исключение из правила выше.
+# В 5.0 убран старый API каскадов, и `cv2.CascadeClassifier`, на который рассчитывают
+# insightface и rembg, отсутствует: замер лица и вырезание фигуры падают
+# AttributeError'ом уже после установки (19.08). Оба пакета opencv указаны явно —
+# insightface тянет обычный, rembg безголовый, и без пары ограничений один из них
+# всё равно приезжает пятой версии и перекрывает cv2 собой.
+opencv-python<5
+opencv-python-headless<5
 pillow
 onnxruntime
 insightface

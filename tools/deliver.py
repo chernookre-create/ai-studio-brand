@@ -24,8 +24,28 @@ except Exception:                                                # noqa: BLE001
     операция = None                    # наблюдаемость необязательна: сдача важнее журнала
 from PIL import Image, ImageDraw, ImageFont
 
-F = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
-FB = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+def _шрифт(*кандидаты):
+    """Первый существующий файл из списка.
+
+    Прежде здесь стояли два линуксовых пути DejaVu литералами. В контейнере сессии
+    они есть, на маке их нет — и сдача падала OSError'ом уже после того, как папка
+    создана и кадры в неё скопированы. Снаружи это выглядело как собранная сдача:
+    папка на месте, контактного листа нет. Поймано 19.08 первым же прогоном сдачи
+    на маке (Ф182). Подписи на контактном листе русские, поэтому кириллица в шрифте
+    обязательна — Helvetica и Arial Unicode её несут.
+    """
+    for путь in кандидаты:
+        if os.path.exists(путь):
+            return путь
+    raise SystemExit('Нет ни одного шрифта для подписей. Искал:\n  ' + '\n  '.join(кандидаты))
+
+
+F = _шрифт('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+           '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+           '/System/Library/Fonts/Helvetica.ttc')
+FB = _шрифт('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+            '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
+            '/System/Library/Fonts/Helvetica.ttc')
 
 
 # Данные конкретной съёмки — из refs/CURRENT.json, а не из кода: эталон узора и разрешение
