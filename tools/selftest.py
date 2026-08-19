@@ -218,6 +218,30 @@ def main():
     dead = []
     # meta.json создаётся deliver.py в момент сдачи — это цель записи, а не ссылка.
     RUNTIME = {'meta.json'}
+    # Путь, который .gitignore держит вне репозитория, отсутствует в свежем клоне ПО
+    # ЗАМЫСЛУ: журнал наблюдаемости и события туда не едут — репозиторий публичный.
+    # Первая редакция этого не знала, и свежий клон печатал «УПАЛО» на исправном
+    # комплекте — то есть ровно то, чем этот пункт болел в самом начале (Ф61, Ф170).
+    игнор = []
+    gi = os.path.join(ROOT, '.gitignore')
+    if os.path.exists(gi):
+        for стр in open(gi, encoding='utf-8'):
+            стр = стр.strip()
+            if стр and not стр.startswith('#'):
+                игнор.append(стр.rstrip('/'))
+
+    def под_игнором(путь):
+        """Путь под .gitignore. Голое имя тоже считается: в коде путь часто собирается
+        через os.path.join, и из литерала видно только последний кусок — `журнал.md`,
+        тогда как в .gitignore записано `00_obs/журнал.md`."""
+        import fnmatch
+        имя = os.path.basename(путь)
+        for ш in игнор:
+            if fnmatch.fnmatch(путь, ш) or путь.startswith(ш + '/'):
+                return True
+            if '/' not in путь and (ш.endswith('/' + имя) or fnmatch.fnmatch(имя, ш)):
+                return True
+        return False
     # obs_test.py выдумывает пути нарочно — это его работа: он проверяет счётчики записей
     # на выдуманных именах, ничего не записывая. Судить его этим пунктом бессмысленно.
     for sc in [x for x in SCRIPTS if x != 'obs_test.py']:
@@ -234,7 +258,8 @@ def main():
             bare = '/' not in ref
             if (os.path.exists(os.path.join(ROOT, ref))
                     or (bare and ref in known)
-                    or os.path.basename(ref) in RUNTIME):
+                    or os.path.basename(ref) in RUNTIME
+                    or под_игнором(ref)):
                 continue
             dead.append(f'{sc}: {ref}')
     check('мёртвых ссылок нет', not dead, '; '.join(sorted(set(dead))))
